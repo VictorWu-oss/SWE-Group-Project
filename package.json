@@ -1,0 +1,26 @@
+{
+  "name": "swe-group-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build --workspace react-frontend",
+    "check": "npm run lint --workspace react-frontend && npm run build --workspace react-frontend",
+    "lint": "npm run lint --workspace react-frontend",
+    "test": "npm run check",
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VictorWu-oss/SWE-Group-Project.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VictorWu-oss/SWE-Group-Project/issues"
+  },
+  "homepage": "https://github.com/VictorWu-oss/SWE-Group-Project#readme",
+  "workspaces": [
+    "packages/*"
+  ]
+}
