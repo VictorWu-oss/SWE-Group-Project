@@ -13,5 +13,10 @@ As a student who just used a bathroom, I want to rate its cleanliness and how bu
 As a student on an unfamiliar part of campus, I want clear directions to a bathroom, including which floor and entrance to use, so that I can get there without wandering around the building.
 
 Author: Justin
+As a student with a medical condition, I want to filter bathrooms by single-stall or private restroom options so that I can use the restroom comfortably and safely.
+
+As a student studying late on campus, I want to see each bathroom’s current open/closed hours so that I do not walk to a restroom that is locked after hours.
+
+As a student who notices a bathroom problem, I want to report issues like no toilet paper, broken sinks, or clogged toilets so that campus staff can fix them quickly.
 
 Author: Gavin
