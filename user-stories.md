@@ -20,3 +20,8 @@ As a student studying late on campus, I want to see each bathroom’s current op
 As a student who notices a bathroom problem, I want to report issues like no toilet paper, broken sinks, or clogged toilets so that campus staff can fix them quickly.
 
 Author: Gavin
+As a student who prefers a quieter restroom, I want to filter for single-occupancy bathrooms so that I can avoid crowded shared restrooms.
+
+As a student carrying a backpack and other belongings, I want to find bathrooms with hooks, shelves, or larger stalls so that I have a safe place to keep my things.
+
+As a student traveling across campus at night, I want to find bathrooms near well-lit buildings or campus safety locations so that I feel safer walking there.
