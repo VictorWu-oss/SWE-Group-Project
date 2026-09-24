@@ -1,0 +1,6 @@
+For Cal Poly students who want to find a nearby clean bathroom on campus, 
+Cal Poly Bathroom Finder is a mobile campus-navigation app that shows 
+bathroom locations and community-reported cleanliness ratings. Unlike 
+relying on memory, building signs, or guessing which restroom is clean, 
+our product helps students quickly choose a cleaner bathroom based on 
+recent user feedback.
