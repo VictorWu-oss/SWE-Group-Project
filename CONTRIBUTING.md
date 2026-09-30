@@ -25,3 +25,8 @@ separately in each package with an `eslint.config.js` file:
 
 To cherck your code, run this in the folder youre working in:
 npm eslint .
+
+Architechture
+-Usability
+-Reliability
+-Maintainability
