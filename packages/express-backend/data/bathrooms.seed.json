@@ -1,0 +1,42 @@
+[
+  {
+    "id": "demo-university-union",
+    "name": "Demo Bathroom 01",
+    "building": "University Union",
+    "latitude": 35.3002,
+    "longitude": -120.6608,
+    "demo": true
+  },
+  {
+    "id": "demo-baker-science",
+    "name": "Demo Bathroom 02",
+    "building": "Baker Science",
+    "latitude": 35.3012,
+    "longitude": -120.6629,
+    "demo": true
+  },
+  {
+    "id": "demo-dexter-building",
+    "name": "Demo Bathroom 03",
+    "building": "Dexter Building",
+    "latitude": 35.2994,
+    "longitude": -120.6637,
+    "demo": true
+  },
+  {
+    "id": "demo-engineering-east",
+    "name": "Demo Bathroom 04",
+    "building": "Engineering East",
+    "latitude": 35.3020,
+    "longitude": -120.6609,
+    "demo": true
+  },
+  {
+    "id": "demo-campus-market",
+    "name": "Demo Bathroom 05",
+    "building": "Campus Market",
+    "latitude": 35.2989,
+    "longitude": -120.6612,
+    "demo": true
+  }
+]

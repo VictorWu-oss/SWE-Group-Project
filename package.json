@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run build --workspace react-frontend",
-    "check": "npm run lint --workspace react-frontend && npm run build --workspace react-frontend",
+    "check": "npm run test --workspace express-backend && npm run lint --workspace react-frontend && npm run build --workspace react-frontend && npm exec --workspace mobile-app -- tsc --noEmit",
     "lint": "npm run lint --workspace react-frontend",
     "test": "npm run check",
+    "dev:api": "npm run dev --workspace express-backend",
+    "dev:mobile": "npm run start --workspace mobile-app",
+    "seed": "npm run seed --workspace express-backend",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "repository": {
