@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Bathroom, Coordinates } from '../main/types';
 
@@ -50,6 +50,17 @@ export function CampusMap({ bathrooms, location, selectedBathroomId, onSelectBat
     [bathrooms, location, selectedBathroomId],
   );
 
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webFallback}>
+        <Text style={styles.webFallbackTitle}>Campus map preview</Text>
+        <Text style={styles.webFallbackText}>
+          The interactive map is available in the iOS and Android app. Use the bathroom list below in web mode.
+        </Text>
+      </View>
+    );
+  }
+
   function handleMessage(event: WebViewMessageEvent) {
     try {
       const message = JSON.parse(event.nativeEvent.data) as { type?: string; id?: string };
@@ -79,4 +90,7 @@ const styles = StyleSheet.create({
   mapFrame: { flex: 1, overflow: 'hidden', backgroundColor: '#E8EDF2' },
   webView: { flex: 1, backgroundColor: 'transparent' },
   loading: { position: 'absolute', alignSelf: 'center', top: '48%', zIndex: 1 },
+  webFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: '#E8EDF2' },
+  webFallbackTitle: { color: '#253143', fontSize: 18, fontWeight: '700' },
+  webFallbackText: { color: '#667085', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 8, maxWidth: 360 },
 });

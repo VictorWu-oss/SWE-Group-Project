@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
@@ -12,6 +12,20 @@ const INSTALLATION_KEY = 'toilet-tracker-installation-id';
 
 function createInstallationId() {
   return `tt-${Crypto.randomUUID()}`;
+}
+
+async function getInstallationId() {
+  if (Platform.OS === 'web') {
+    const storedId = window.localStorage.getItem(INSTALLATION_KEY);
+    const id = storedId || createInstallationId();
+    if (!storedId) window.localStorage.setItem(INSTALLATION_KEY, id);
+    return id;
+  }
+
+  const storedId = await SecureStore.getItemAsync(INSTALLATION_KEY);
+  const id = storedId || createInstallationId();
+  if (!storedId) await SecureStore.setItemAsync(INSTALLATION_KEY, id);
+  return id;
 }
 
 export default function App() {
@@ -33,10 +47,8 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    SecureStore.getItemAsync(INSTALLATION_KEY)
-      .then(async (storedId) => {
-        const id = storedId || createInstallationId();
-        if (!storedId) await SecureStore.setItemAsync(INSTALLATION_KEY, id);
+    getInstallationId()
+      .then(async (id) => {
         if (!active) return;
         setInstallationId(id);
         await loadBathrooms(id);

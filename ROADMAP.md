@@ -1,219 +1,180 @@
 # ToiletTracker project roadmap
 
-## Goal and planning assumptions
+## Goal
 
-This roadmap takes the current repository to a verified, usable Cal Poly SLO
-bathroom-finder release, then provides a decision-gated path for the additional
-stories in [`user-stories.md`](./user-stories.md).
+Deliver a tested cross-platform MVP in four weeks. The release includes the
+Expo mobile app and the React/Vite web app, both using the same Express/SQLite
+API. The MVP is search, filters, nearby list, 2D map, bathroom details,
+cleanliness/busyness ratings, and loading, empty, error, and location-denied
+states.
 
-Plan for four people over about four focused weeks. This is a planning estimate,
-not a promised date; adjust it after the first working integration. Work is
-organized so each person can make progress asynchronously against agreed
-interfaces and report blockers without waiting for a meeting.
+The web app is a first-class client, not an optional prototype. The current
+seed records are demo locations with unverified coordinates and must not be
+presented as confirmed campus facts.
 
-The current release target is the mobile experience described in
-[`README.md`](./README.md): campus bathroom search, a 2D map and nearby list,
-details, and community cleanliness/busyness ratings. The backend and mobile
-rating flow already exist. The checked-in locations are demo records with
-unverified coordinates, so the app is not ready to represent real campus
-locations until those are verified.
+## Architecture
 
-Do not silently expand the release scope. The project context has open
-decisions about sign-in, rating presentation, rating freshness, comments,
-accessibility data, and location verification. The README describes an
-account-free flow and the implementation uses 1–5 cleanliness and
-Low/Medium/High busyness ratings; confirm these as team decisions before
-calling them final. No unconfirmed privacy, moderation, or campus-access policy
-should be invented.
+```text
+Expo mobile app ─┐
+                 ├── shared API contract/types ─── Express API ─── SQLite
+React/Vite web ──┘
+```
 
-## Team lanes
+Backend logic belongs in `packages/express-backend`; mobile UI in
+`packages/mobile-app`; web UI in `packages/react-frontend`. Document shared
+response shapes in `docs/api-contract.md` and keep fixtures aligned.
 
-Assign people to lanes at kickoff. A person can help another lane by opening a
-small PR or documenting a finding, but keep one clear owner for each deliverable.
+Root commands should include:
 
-| Person | Primary lane | Owns |
+```bash
+npm run dev:api
+npm run dev:web
+npm run dev:mobile
+npm test
+```
+
+## Full-stack ownership
+
+Every person owns API routes, database/seed behavior, mobile UI, web UI, and
+tests for one vertical slice.
+
+| Person | Slice | Responsibilities |
 |---|---|---|
-| A — Mobile | Mobile product | 2D map, location/search/list, details and rating UX, accessibility of controls, device verification |
-| B — Backend | API and data | SQLite schema/seed process, API contract, validation, persistence, backend tests and error handling |
-| C — Product and campus data | Requirements and data quality | Stakeholder decisions, bathroom verification workflow, verified seed records, story/acceptance criteria and demo script |
-| D — Quality and delivery | Integration and release | Test plan, regression/integration checks, usability checks, build/run documentation, release checklist and risk tracking |
+| Justin | Search, filters, nearby list, details | Search/filter API, metadata, both clients, fixtures, tests |
+| Victor | Map, location, directions, accessibility | Map/location behavior, both clients, distance logic, tests |
+| Gavin | Ratings, reviews, maintenance reports | Review API, persistence/validation, both forms, aggregates, tests |
+| Aaliyah | Web foundation and integration | Web shell/routing, API client/types, shared states, cross-platform tests, builds |
 
-Person D should make small implementation contributions where useful (for
-example, focused tests or a separate web prototype only if approved), rather
-than becoming a catch-all for unfinished work.
+Aaliyah owns a real product area and is not a catch-all for unfinished work.
+Testing and code review remain shared responsibilities.
 
-## Work that can start asynchronously
+## Async working agreements
 
-Start these in parallel during kickoff; use a short written handoff rather than
-waiting for everyone to finish the same task:
+The assignment-ready weekly tickets are in [`TICKETS.md`](./TICKETS.md).
 
-1. **A — Mobile audit:** run the existing app, list reproducible UX gaps, and
-   check map, search, permission-denied fallback, detail sheet, and review
-   submission. Record device/OS and steps to reproduce.
-2. **B — API audit:** run the API tests, document current routes and JSON
-   shapes, and identify missing validation/error cases. Do not change response
-   shapes without publishing a proposed contract first.
-3. **C — Decisions and data:** ask the product stakeholder to resolve the
-   release decisions below; in parallel, inventory candidate campus data and
-   record its source and verification status. Do not replace demo coordinates
-   with guesses.
-4. **D — Test/release audit:** run `npm test`, capture baseline failures, draft
-   a device/manual test matrix, and identify the cleanest end-to-end demo path.
+Each work session ends with:
 
-### Shared async handoff rules
+```text
+Completed:
+Next:
+Blocked by:
+PR/commit:
+Tests or screenshots:
+```
 
-- Keep API and app changes in separate, reviewable PRs; use fixtures or mocks
-  matching the agreed API response while the other lane is in progress.
-- B publishes any proposed API/schema changes in the PR description before A
-  depends on them. A publishes any proposed screen/interaction changes with
-  acceptance criteria before implementation.
-- Each async update states: completed, next, blocked-by (if any), and the PR or
-  test evidence. Raise a blocker when it appears instead of waiting for the
-  next checkpoint.
-- Integrate at least twice each week. Do not hold up independent data research,
-  test authoring, or UX work on backend implementation.
+- Open small PRs by vertical feature.
+- Publish API/database changes before another client depends on them.
+- Use fixtures or mocks so web and mobile work can proceed asynchronously.
+- Integrate at least twice per week; review PRs within 24 hours.
+- A feature is complete only when API, database behavior, mobile UI, web UI,
+  and tests are present.
 
-## Four-week sequence
+## Four-week roadmap
 
-### Week 1 — Agree scope and stabilize the existing MVP
+### Week 1 — Cross-platform foundation
 
-**Goal:** have an agreed release contract, verified backlog, and reliable local
-setup.
+**Goal:** both clients run locally and the shared API contract is stable.
 
-- **A:** run the mobile flow against the local API; fix high-impact defects in
-  search, selected bathroom/details, review submission, loading/error states,
-  and location-denied fallback.
-- **B:** document and test the existing health, list/detail, and review routes;
-  confirm server validation, database behavior, review uniqueness, and
-  user-visible error responses.
-- **C:** get decisions on MVP rating scale, whether account-free submission is
-  the intended policy, user-reported rating language, data verification owner,
-  and which bathrooms are appropriate to include. Turn decisions into
-  Given/When/Then acceptance criteria.
-- **D:** establish a requirement-to-test checklist; baseline the root
-  `npm test` command; add/organize focused integration or manual checks for
-  gaps not covered by current backend tests.
-- **Together:** agree that this release is mobile-first. Decide whether the
-  React web package is a deliverable or an unused starter; leave it out of
-  scope unless a stakeholder explicitly requests a web app.
+**Justin:** define search/filter responses and bathroom metadata; implement
+the web discovery foundation; audit mobile discovery; add backend tests.
 
-**Gate:** named MVP scope and measurable acceptance criteria are written down;
-all four can run the documented API/mobile setup; demo data is clearly labeled.
+**Victor:** confirm the map library works on web and mobile; define distance
+and permission behavior; scaffold the web map; define fallback states.
 
-### Week 2 — Complete core search, map, and review experience
+**Gavin:** document review validation; implement the web rating form while
+preserving mobile submission; test invalid, duplicate, and successful reviews;
+decide whether maintenance reports are in scope.
 
-**Goal:** core tasks work end-to-end on the agreed target devices.
+**Aaliyah:** turn the Vite starter into the web shell with routing/navigation;
+add `dev:web`, typed API client, fixtures, shared loading/error states, and
+web lint/build checks; document startup.
 
-- **A:** complete and polish the 2D map, nearby list, name/building search,
-  distance ordering where location is available, optional-location fallback,
-  bathroom detail sheet, and review form.
-- **B:** close API contract gaps revealed in Week 1; preserve reliable SQLite
-  persistence and validate malformed, duplicate, and unknown-bathroom
-  submissions.
-- **C:** provide a verified set of bathroom records and source/verification
-  notes; if campus verification is not available, prepare a clearly labeled
-  demo dataset and keep real-campus claims out of release materials.
-- **D:** independently test the API and app against agreed acceptance
-  criteria, including empty/loading/error states and retry behavior; report
-  actionable defects with reproduction steps.
+**Gate:** API, web, and mobile start from the documented instructions; MVP
+scope and API response shapes are written down.
 
-**Async pairing:** A can build against the current typed API client while B
-implements backend tests. C can validate bathroom records independently of
-either implementation. D can prepare fixtures and test cases before features
-are merged.
+### Week 2 — Complete vertical slices
 
-**Gate:** one user can find a bathroom, inspect reported information, submit a
-rating, and see the updated aggregate without a developer-only workaround.
+**Goal:** the same core journey works on web and mobile against the real API.
 
-### Week 3 — Data verification, usability, and story decisions
+**Justin:** deliver search, filters, nearby list, details, empty states, and
+no-results behavior on both clients.
 
-**Goal:** the release is credible and the team makes explicit choices about
-the remaining user stories.
+**Victor:** deliver map markers, selection, nearby ordering, browser
+geolocation, mobile permissions, and fallbacks on both clients.
 
-- **A:** verify map usability on a physical phone and supported simulator;
-  check permission prompts, accessible labels/controls, text sizing, and
-  outdoor/poor-network behavior.
-- **B:** check data import/seed repeatability and that updating bathroom
-  metadata does not erase community reports. Add only fields required by
-  approved stories.
-- **C:** complete campus data verification or document why it is unavailable;
-  validate the app’s bathroom eligibility with the stakeholder; map every
-  additional story to a decision, data owner, and acceptance criterion.
-- **D:** run end-to-end regression, check error and no-data cases, review
-  user-facing language for clarity about subjective/community reports, and
-  prepare the demo script.
-- **Together:** decide which additional stories belong in the next increment.
-  Do not implement stories that require unresolved access, privacy, moderation,
-  data, or safety policy.
+**Gavin:** deliver rating forms, validation, updated aggregates, duplicate
+handling, and community-report wording on both clients.
 
-**Gate:** release locations are verified (or the release is explicitly a demo);
-all reported rating information is presented as user-reported, not live or
-verified occupancy.
+**Aaliyah:** deliver responsive layout, shared API error handling, web
+fixtures, and API-to-web integration checks.
 
-### Week 4 — Stabilize and release the agreed scope
+**Gate:** a user can search, view a bathroom in a list or map, open details,
+submit a rating, and see updated information on both platforms.
 
-**Goal:** the team can install, run, demonstrate, and hand off the release.
+### Week 3 — Cross-platform testing and scope freeze
 
-- **A:** fix prioritized mobile defects and verify the release build and
-  physical-device flow against the API over the intended network.
-- **B:** run the complete backend suite on a clean local database; confirm
-  startup, health check, seed behavior, and persistence across restart.
-- **C:** sign off the bathroom dataset, acceptance criteria, and scope notes;
-  prepare a concise walkthrough of known limitations.
-- **D:** run the full root check, verify install/start instructions from a clean
-  checkout, and assemble final regression results and release notes.
-- **Together:** triage remaining issues as release blockers, accepted
-  limitations, or future work; tag/submit the agreed course/project
-  deliverable only after the Definition of Done below is met.
+**Justin:** test filters, search, details, accessibility labels, narrow web
+layouts, and missing metadata.
 
-If the agreed scope is not stable by the end of Week 3, use Week 4 for the MVP
-and move optional features to a later increment instead of reducing test time.
+**Victor:** test maps/location in a browser and on a phone or simulator,
+including denied location and failed map tiles.
 
-## Later-increment backlog (decision-gated)
+**Gavin:** test ratings on both clients, persistence, API failures,
+duplicates, and date-boundary behavior.
 
-These appear in [`user-stories.md`](./user-stories.md), but they are not all
-supported by current confirmed requirements or data. Resolve the questions
-below before sizing or implementation. Keep each approved feature behind its
-own acceptance criteria and add API/data, mobile UI, and tests together.
+**Aaliyah:** run browser/mobile smoke tests, API integration tests, clean
+checkout setup checks, and responsive checks. Add Playwright coverage for the
+primary web flow if supported.
 
-| Story area | Prerequisite decision/data |
-|---|---|
-| Accessibility, step-free route, floor, entrance | Verified accessibility attributes and routing source; confirm who maintains them |
-| Menstrual products, baby-changing, hooks/shelves, stall types | Confirm which attributes are in scope and obtain a reliable per-bathroom source |
-| Staff-only/reserved bathrooms | Confirm audience and campus access policy before showing restricted locations |
-| Opening hours | Reliable source and owner for updates; define how closed/unknown hours are represented |
-| Maintenance issue reports | Define what gets reported, who receives it, whether comments are allowed, and the required abuse/privacy handling |
-| Directions and route safety | Choose/approve routing and safety data sources; specify what route information is supportable |
-| Rating comments or moderation | Decide whether comments exist and establish moderation/privacy requirements before collecting text |
-| Rating freshness/expiry | Agree how busyness ages and how stale reports are displayed; current UI shows a timestamp and explicitly says it is not live |
-| 3D map or chat | Confirm these later milestones are still desired, then size separately; neither is required for the current MVP |
-| React web app | Confirm that a browser app is a deliverable; the current React frontend is a starter template, not a product feature |
+**Gate:** freeze the MVP. Features without complete API, database, web UI,
+mobile UI, and tests move to future work.
+
+### Week 4 — Stabilize and release
+
+**Justin:** fix discovery/details defects and verify final seed data on both
+clients.
+
+**Victor:** fix map/location defects, verify attribution, and test browser
+and mobile geolocation separately.
+
+**Gavin:** fix rating defects, verify matching aggregates, and confirm
+accurate wording about community reports.
+
+**Aaliyah:** run the release checklist; verify web production build, Expo
+flow, clean database startup, release notes, and demo script.
+
+**Together:** classify remaining issues as blockers, accepted limitations, or
+future work. Preserve regression time.
 
 ## Definition of Done
 
-- The approved scope and acceptance criteria are traceable to tests or a
-  documented manual check.
-- `npm test` passes from the repository root; any environment-only manual
-  checks and their results are recorded.
-- The API starts, responds to `/api/health`, and the documented seed flow is
-  repeatable without deleting existing ratings.
-- On an agreed phone/simulator, a user can search/list bathrooms, view the map
-  and details, submit the supported review, and understand loading, failure,
-  location-denied, no-review, and demo-data states.
-- No unverified coordinates or bathroom attributes are presented as confirmed
-  campus facts. If only demo records are available, the release is labeled as
-  a demo and is not represented as ready for campus navigation.
-- User-facing claims do not imply that reports are verified, live occupancy,
-  or a guaranteed one-person-one-review system.
-- Setup, known limitations, test evidence, and ownership for verified campus
-  data are handed off in the repository documentation.
+- Search, list, map, details, and ratings work on web and mobile.
+- Both clients consume the same documented API.
+- The API starts and responds to `/api/health` from a clean checkout.
+- SQLite persistence and repeatable seed behavior work without deleting reviews.
+- Loading, error, empty, invalid-input, and location-denied states are handled.
+- `npm test` passes, including backend tests, web lint/build, and mobile types.
+- The main web journey has an automated or documented browser test.
+- The main mobile journey has a documented device/simulator check.
+- Demo locations and unverified attributes are clearly labeled.
+- Text does not claim live occupancy, verified ratings, or guaranteed
+  one-person-one-review behavior.
+- Setup instructions, limitations, test evidence, and ownership are documented.
 
-## Key risks and responses
+## Deferred backlog
+
+Do not implement these without a confirmed data source, owner, and acceptance
+criteria: step-free routes and verified accessibility data; menstrual products,
+baby-changing, hooks, shelves, and stall types; staff-only bathrooms; opening
+hours; maintenance reports; rating comments/moderation; rating expiry; 3D map;
+chat; and advanced routing.
+
+## Risks and responses
 
 | Risk | Response |
 |---|---|
-| Bathroom location data cannot be verified in time | Keep demo labels and limit the release/demo claim; do not guess coordinates |
-| Open product decisions stall implementation | Record the owner and answer needed in Week 1; implement only the already-agreed MVP meanwhile |
-| Mobile and API work drift apart | Publish contract changes first; integrate twice weekly and keep typed fixtures aligned |
-| Physical device cannot reach local API or map tiles | Test the documented LAN setup early; retain and test the no-location fallback |
-| Optional stories overwhelm the core release | Gate later-increment work on explicit decisions and preserve Week 4 for regression and handoff |
+| Web/mobile behavior diverges | Require both clients in every feature PR and test the same fixtures |
+| API changes block frontend work | Publish contracts first and use fixtures/mocks |
+| Location data is unverified | Label the release as a demo; never guess campus facts |
+| Phone cannot reach the API | Test LAN setup in Week 2 and retain location fallback |
+| Optional stories consume time | Freeze scope in Week 3 and preserve Week 4 for regression |
