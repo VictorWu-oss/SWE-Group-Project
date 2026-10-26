@@ -1,5 +1,11 @@
 # ToiletTracker implementation tickets
 
+## Current milestone scope
+
+This milestone is mobile-only. The Expo app, Express API, SQLite persistence,
+and mobile tests are release-blocking. Web-specific tasks and requirements are
+deferred and should not block the mobile demo or acceptance checks.
+
 ## Team assignment
 
 | Team member | Product slice |
@@ -7,11 +13,12 @@
 | Justin | Search, filters, nearby list, and bathroom details |
 | Victor | Map, location, directions, and accessibility |
 | Gavin | Ratings, reviews, and maintenance reports |
-| Aaliyah | Web foundation, shared infrastructure, integration, and release |
+| Aaliyah | Mobile integration, shared infrastructure, and release |
 
 Every ticket requires a small PR, a short async update, and review from at
 least one teammate. For any customer-facing feature, the owner must verify the
-web UI, mobile UI, API behavior, and its test evidence.
+mobile UI, API behavior, and its test evidence. Web work is deferred for this
+milestone.
 
 ---
 
@@ -21,6 +28,8 @@ web UI, mobile UI, API behavior, and its test evidence.
 
 **Purpose:** establish the data contract and initial screens for finding a
 bathroom.
+
+**Estimated effort:** 10 hours
 
 **Tasks**
 
@@ -51,6 +60,8 @@ Aaliyah before beginning Week 2.
 **Purpose:** choose a workable map path and remove ambiguity around location
 permissions.
 
+**Estimated effort:** 9 hours
+
 **Tasks**
 
 - Run the current mobile map and identify its required data fields.
@@ -79,6 +90,8 @@ Aaliyah.
 **Purpose:** make rating behavior predictable before both client implementations
 depend on it.
 
+**Estimated effort:** 8 hours
+
 **Tasks**
 
 - Document the existing POST review route, required fields, success response,
@@ -103,25 +116,25 @@ depend on it.
 
 ---
 
-### TT-104 — Aaliyah — Make the web app runnable
+### TT-104 — Aaliyah — Integrate the mobile app and release checks
 
-**Purpose:** convert the React/Vite starter into a usable web application base.
+**Purpose:** make the mobile app reproducible, testable, and ready for demo.
+
+**Estimated effort:** 10 hours
 
 **Tasks**
 
-- Add a root `dev:web` script for the React/Vite workspace.
-- Create the web app layout, navigation, and a responsive page container.
-- Add a typed API client that mirrors the Express response shapes.
-- Create shared web loading, error, and empty-state components.
-- Add a fixture mode or simple fixture module for safe independent UI work.
-- Ensure lint and production build commands work from the repository root.
-- Update README startup instructions for API, web, and mobile development.
+- Verify the Expo startup flow and API URL setup on a clean checkout.
+- Verify mobile loading, error, empty, and location-denied states.
+- Keep the mobile API client aligned with the Express response shapes.
+- Run the root backend tests and mobile TypeScript check.
+- Update README startup instructions for API and mobile development.
 
 **Validation**
 
-- A clean local checkout can start API, web, and mobile with documented steps.
-- The web app has visible loading/error/empty states.
-- Web lint and production build pass.
+- A clean local checkout can start the API and mobile app with documented steps.
+- The mobile app has visible loading/error/empty states.
+- Mobile TypeScript and backend checks pass.
 
 **Handoff:** publish how feature owners add a page, make API calls, and test with
 fixtures.
