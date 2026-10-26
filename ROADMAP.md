@@ -1,23 +1,26 @@
 # ToiletTracker project roadmap
 
+## Current scope decision
+
+For the current milestone, the team will focus on the Expo mobile app as the
+primary deliverable. The React/Vite web client is deferred and should not block
+mobile implementation, testing, or demonstration.
+
 ## Goal
 
-Deliver a tested cross-platform MVP in four weeks. The release includes the
-Expo mobile app and the React/Vite web app, both using the same Express/SQLite
-API. The MVP is search, filters, nearby list, 2D map, bathroom details,
-cleanliness/busyness ratings, and loading, empty, error, and location-denied
-states.
+Deliver a tested mobile MVP in four weeks. The release includes the Expo
+mobile app using the Express/SQLite API. The MVP is search, nearby list, 2D
+map, bathroom details, cleanliness/busyness ratings, and loading, empty, error,
+and location-denied states.
 
-The web app is a first-class client, not an optional prototype. The current
-seed records are demo locations with unverified coordinates and must not be
-presented as confirmed campus facts.
+The web app is deferred for this milestone. The current seed records are demo
+locations with unverified coordinates and must not be presented as confirmed
+campus facts.
 
 ## Architecture
 
 ```text
-Expo mobile app ─┐
-                 ├── shared API contract/types ─── Express API ─── SQLite
-React/Vite web ──┘
+Expo mobile app ─── shared API contract/types ─── Express API ─── SQLite
 ```
 
 Backend logic belongs in `packages/express-backend`; mobile UI in
@@ -43,7 +46,7 @@ tests for one vertical slice.
 | Justin | Search, filters, nearby list, details | Search/filter API, metadata, both clients, fixtures, tests |
 | Victor | Map, location, directions, accessibility | Map/location behavior, both clients, distance logic, tests |
 | Gavin | Ratings, reviews, maintenance reports | Review API, persistence/validation, both forms, aggregates, tests |
-| Aaliyah | Web foundation and integration | Web shell/routing, API client/types, shared states, cross-platform tests, builds |
+| Aaliyah | Mobile integration and release | Mobile integration, shared API client/types, shared states, tests, and builds |
 
 Aaliyah owns a real product area and is not a catch-all for unfinished work.
 Testing and code review remain shared responsibilities.
