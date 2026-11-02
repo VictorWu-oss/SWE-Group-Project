@@ -1,122 +1,50 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useMemo, useState } from 'react';
+import './App.css';
+import { sortBathrooms, formatDistance } from './location.js';
+
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [bathrooms, setBathrooms] = useState([]);
+  const [location, setLocation] = useState(null);
+  const [locationState, setLocationState] = useState('idle');
+  const [selectedId, setSelectedId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  useEffect(() => {
+    fetch(`${API_URL}/bathrooms?installationId=web-browser`).then((response) => {
+      if (!response.ok) throw new Error('Unable to load bathrooms.');
+      return response.json();
+    }).then((data) => setBathrooms(data.bathrooms || [])).catch(() => setError('Bathrooms could not be loaded. Check that the API is running.'));
+  }, []);
 
-      <div className="ticks"></div>
+  function requestLocation() {
+    if (!navigator.geolocation) { setLocationState('unavailable'); return; }
+    setLocationState('loading');
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      setLocation({ latitude: coords.latitude, longitude: coords.longitude });
+      setLocationState('granted');
+    }, () => { setLocation(null); setLocationState('denied'); }, { enableHighAccuracy: false, timeout: 10000 });
+  }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  const results = useMemo(() => sortBathrooms(bathrooms, search, location), [bathrooms, search, location]);
+  const selected = results.find(({ bathroom }) => bathroom.id === selectedId)?.bathroom;
+  const center = selected || location || { latitude: 35.3003, longitude: -120.6625 };
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  return <main className="app-shell">
+    <header className="topbar"><div><p className="eyebrow">TOILETTRACKER</p><h1>Find a bathroom</h1></div><button className="location-button" onClick={requestLocation} disabled={locationState === 'loading'}>{locationState === 'loading' ? 'Locating…' : location ? 'Location enabled' : 'Use my location'}</button></header>
+    {locationState === 'denied' || locationState === 'unavailable' ? <p className="notice">Location is optional. You can still browse the map and list; results are sorted by name.</p> : null}
+    {error ? <p className="error">{error}</p> : null}
+    <section className="workspace"><div className="map-card" aria-label="Bathroom map"><div className="map-grid">
+      {results.map(({ bathroom }) => bathroom.latitude === null || bathroom.longitude === null ? null : <button key={bathroom.id} className={`map-marker ${selectedId === bathroom.id ? 'selected' : ''}`} style={{ left: `${50 + (bathroom.longitude - center.longitude) * 700}%`, top: `${50 - (bathroom.latitude - center.latitude) * 700}%` }} title={`Open ${bathroom.name}`} aria-label={`Open ${bathroom.name}`} onClick={() => setSelectedId(bathroom.id)}>●</button>)}
+      {location ? <span className="user-marker" title="Your location" aria-label="Your location" /> : null}<div className="map-attribution">Map preview · © OpenStreetMap contributors</div>
+    </div><p className="map-help">Select a marker to view its bathroom details.</p></div>
+    <aside className="directory"><label htmlFor="search">Search bathrooms or buildings</label><input id="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search…" /><p className="result-summary">{location ? 'Sorted by distance' : 'Sorted alphabetically; location optional'}</p>
+      {results.length === 0 ? <p className="empty">No bathrooms found.</p> : results.map(({ bathroom, distanceKilometers }) => <button className={`directory-row ${selectedId === bathroom.id ? 'active' : ''}`} key={bathroom.id} onClick={() => setSelectedId(bathroom.id)}><span className="pin">●</span><span><strong>{bathroom.name}</strong><small>{bathroom.building}</small></span><small>{formatDistance(distanceKilometers)}</small></button>)}
+      {selected ? <div className="details"><h2>{selected.name}</h2><p>{selected.building}</p><p>{selected.directoryVerified ? 'Verified directory' : 'Demo / unverified'}</p><p>{selected.indoorDirections || 'Directions are not available yet.'}</p></div> : null}
+    </aside></section>
+  </main>;
 }
 
-export default App
+export default App;
