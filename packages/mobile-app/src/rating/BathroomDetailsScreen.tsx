@@ -29,6 +29,10 @@ function formatReportedAt(timestamp: string | null) {
   return new Date(timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function restroomRoomLabel(name: string) {
+  return name.replace(/^All-gender restrooms?\s*·\s*/i, '') || 'Room information unavailable';
+}
+
 export function BathroomDetailsScreen({
   bathroom,
   installationId,
@@ -121,8 +125,10 @@ export function BathroomDetailsScreen({
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.kicker}>BATHROOM DETAILS</Text>
-        <Text style={styles.title}>{bathroom.name}</Text>
-        <Text style={styles.building}>{bathroom.building}</Text>
+        <Text style={styles.title}>{bathroom.building}</Text>
+        <Text style={styles.building}>
+          All-gender restroom · {restroomRoomLabel(bathroom.name)}
+        </Text>
 
         {bathroom.demo ? (
           <Text style={styles.demoLabel}>DEMO LOCATION | VERIFY BEFORE USE</Text>

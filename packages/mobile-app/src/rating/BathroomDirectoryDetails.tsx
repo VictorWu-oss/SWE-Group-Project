@@ -6,6 +6,7 @@ type Props = {
   bathroom: Bathroom;
   directionError: string;
   onOpenDirections: () => void;
+  showDirections?: boolean;
 };
 
 const amenityLabels = [
@@ -77,6 +78,7 @@ export function BathroomDirectoryDetails({
   bathroom,
   directionError,
   onOpenDirections,
+  showDirections = true,
 }: Props) {
   return (
     <>
@@ -120,18 +122,22 @@ export function BathroomDirectoryDetails({
         ) : null}
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={onOpenDirections}
-        style={({ pressed }) => [styles.directionsButton, pressed && styles.pressed]}
-      >
-        <MaterialCommunityIcons name="directions" size={20} color="#fff" />
-        <Text style={styles.directionsText}>Get directions</Text>
-      </Pressable>
-      <Text style={styles.sectionNote}>
-        Your navigation app will use your current location when available; otherwise choose a starting point there.
-      </Text>
-      {directionError ? <Text accessibilityRole="alert" style={styles.errorText}>{directionError}</Text> : null}
+      {showDirections ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onOpenDirections}
+            style={({ pressed }) => [styles.directionsButton, pressed && styles.pressed]}
+          >
+            <MaterialCommunityIcons name="directions" size={20} color="#fff" />
+            <Text style={styles.directionsText}>Get directions</Text>
+          </Pressable>
+          <Text style={styles.sectionNote}>
+            Your navigation app will use your current location when available; otherwise choose a starting point there.
+          </Text>
+          {directionError ? <Text accessibilityRole="alert" style={styles.errorText}>{directionError}</Text> : null}
+        </>
+      ) : null}
       {bathroom.indoorDirections && bathroom.directoryVerified ? (
         <Text style={styles.sectionNote}>Verified building directions: {bathroom.indoorDirections}</Text>
       ) : null}

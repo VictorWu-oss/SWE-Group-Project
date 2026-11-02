@@ -5,6 +5,7 @@ import type {
   MaintenanceCategory,
   MaintenanceReport,
   MaintenanceReportStatus,
+  Coordinates,
 } from './types';
 import { parseBathroom } from './types';
 import { Platform } from 'react-native';
@@ -16,6 +17,13 @@ import {
   apiUnreachableError,
 } from './apiErrors';
 export { ApiError } from './apiErrors';
+
+export type WalkingRoute = {
+  coordinates: Coordinates[];
+  distanceMeters: number;
+  durationSeconds: number;
+  instructions: string[];
+};
 
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 const API_URL = (Platform.OS === 'web' ? 'http://localhost:3000/api' : configuredApiUrl).replace(/\/$/, '');
@@ -70,6 +78,32 @@ function responseField(body: unknown, field: string): unknown {
     throw apiInvalidResponseError('Bathroom service returned an invalid response.');
   }
   return body[field];
+}
+
+function parseWalkingRoute(value: unknown): WalkingRoute {
+  if (!isRecord(value)
+    || !Array.isArray(value.coordinates)
+    || !value.coordinates.every((coordinate) => isRecord(coordinate)
+      && typeof coordinate.latitude === 'number'
+      && typeof coordinate.longitude === 'number')
+    || typeof value.distanceMeters !== 'number'
+    || typeof value.durationSeconds !== 'number'
+    || !Array.isArray(value.instructions)
+    || !value.instructions.every((instruction) => typeof instruction === 'string')) {
+    throw apiInvalidResponseError('Route service returned an invalid walking route.');
+  }
+  return value as WalkingRoute;
+}
+
+export async function fetchWalkingRoute(
+  origin: Coordinates,
+  destination: Coordinates,
+): Promise<WalkingRoute> {
+  const body = await request('/routes/walking', {
+    method: 'POST',
+    body: JSON.stringify({ origin, destination }),
+  });
+  return parseWalkingRoute(responseField(body, 'route'));
 }
 
 export async function fetchBathrooms(
