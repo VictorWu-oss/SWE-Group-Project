@@ -96,3 +96,156 @@ non-blocking.
   added.
 - Search is a case-insensitive substring match on bathroom name or building.
 - Without location, discovery still sorts alphabetically.
+
+## Code examples for the selected tickets
+
+### Ticket R-01: Extract Discovery Logic from the Map Screen
+
+Location: `packages/mobile-app/src/2d/CampusMapScreen.tsx` and
+`packages/mobile-app/src/main/discovery.ts`
+
+Old Code:
+
+```tsx
+const orderedBathrooms = bathrooms
+  .filter((bathroom) => `${bathroom.name} ${bathroom.building}`
+    .toLowerCase().includes(search.trim().toLowerCase()))
+  .map((bathroom) => ({
+    bathroom,
+    distanceKilometers: location && bathroom.latitude !== null
+      ? distanceBetween(location, {
+        latitude: bathroom.latitude,
+        longitude: bathroom.longitude,
+      })
+      : null,
+  }))
+  .sort((first, second) => {
+    const firstDistance = first.distanceKilometers ?? Number.POSITIVE_INFINITY;
+    const secondDistance = second.distanceKilometers ?? Number.POSITIVE_INFINITY;
+    return location
+      ? firstDistance - secondDistance
+      : first.bathroom.name.localeCompare(second.bathroom.name);
+  });
+```
+
+New Code:
+
+```tsx
+const orderedBathrooms = useMemo(
+  () => filterAndSortBathrooms(
+    bathrooms,
+    search,
+    location,
+    cleanlinessFilter,
+    busynessFilter,
+    { restroomTypes, accessibility, amenities, sort },
+  ),
+  [accessibility, amenities, bathrooms, busynessFilter, cleanlinessFilter,
+    location, restroomTypes, search, sort],
+);
+```
+
+The extracted logic is now in the pure `filterAndSortBathrooms` function in
+`discovery.ts`, where it can be tested without rendering the screen.
+
+### Ticket R-02: Consolidate Bathroom Summary Database Queries
+
+Location: `packages/express-backend/src/services/reviewService.js`
+
+Old Code:
+
+```js
+function getBathroomSummary(database, bathroomId, installationId) {
+  const rows = getAllBathroomRows(database, installationId);
+  const row = rows.find((bathroom) => bathroom.id === bathroomId);
+  return row ? mapDirectoryBathroom(row) : null;
+}
+```
+
+New Code:
+
+```js
+function getBathroomSummary(database, bathroomId, installationId, date = new Date()) {
+  const [row] = getBathroomRows(database, installationId, date, { bathroomId });
+  return row ? mapDirectoryBathroom(row, date) : null;
+}
+
+function getBathroomRows(database, installationId, date, { bathroomId, search } = {}) {
+  const filters = [];
+  const parameters = [installationId, getLosAngelesDay(date)];
+
+  if (typeof bathroomId === 'string') {
+    filters.push('b.id = ?');
+    parameters.push(bathroomId);
+  }
+
+  const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+  return database.prepare(`
+    SELECT b.*, COUNT(r.id) AS review_count,
+      AVG(r.cleanliness) AS average_cleanliness
+    FROM bathrooms b
+    LEFT JOIN reviews r ON r.bathroom_id = b.id
+    ${whereClause}
+    GROUP BY b.id
+    ORDER BY b.name COLLATE NOCASE
+  `).all(...parameters);
+}
+```
+
+The shared query supports list, search, and detail operations while preserving
+the same response mapping for every endpoint.
+
+### Ticket R-03: Separate Review Validation from Review Persistence
+
+Location: `packages/express-backend/src/services/reviewService.js`
+
+Old Code:
+
+```js
+function submitReview(database, input, now = new Date()) {
+  if (!input || typeof input !== 'object') throw validationError('A review request body is required.');
+  if (!Number.isInteger(input.cleanliness) || input.cleanliness < 1 || input.cleanliness > 5) {
+    throw validationError('Cleanliness must be a whole number from 1 to 5.');
+  }
+
+  database.exec('BEGIN IMMEDIATE');
+  // validation, duplicate checks, insert, update, and commit were all mixed here
+}
+```
+
+New Code:
+
+```js
+function submitReview(database, input, now = new Date()) {
+  const { bathroomId, installationId, cleanliness, busyness } = validateReviewInput(input);
+  const day = getLosAngelesDay(now);
+  const timestamp = now.toISOString();
+
+  database.exec('BEGIN IMMEDIATE');
+  try {
+    // The transaction now contains only lookup and persistence work.
+    database.prepare(`
+      INSERT INTO reviews
+        (bathroom_id, installation_id, review_day, cleanliness, busyness, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(bathroomId, installationId, day, cleanliness, busyness, timestamp);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+function validateReviewInput(input) {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw Object.assign(new Error('A review request body is required.'), { statusCode: 400 });
+  }
+  if (!Number.isInteger(input.cleanliness) || input.cleanliness < 1 || input.cleanliness > 5) {
+    throw Object.assign(new Error('Cleanliness must be a whole number from 1 to 5.'), { statusCode: 400 });
+  }
+  return input;
+}
+```
+
+Validation now runs before the database transaction, while persistence is
+responsible only for atomic database work and conflict handling.
