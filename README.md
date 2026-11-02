@@ -96,6 +96,31 @@ connection but no API key or paid map credential. Map data includes
 OpenStreetMap attribution in the app. If location permission is denied or
 unavailable, the map and bathroom list remain usable and the list sorts by
 name instead of distance. Search matches bathroom names and building names.
+Tapping a marker or list item opens the same bathroom details route. Search
+filters map markers and list results together.
+Location permission is requested only when the user taps **Use location**.
+The map/list can be searched without location. The optional rating filters use
+the community cleanliness average (4+) and latest busyness report.
+
+The app uses Expo Router for its discovery and bathroom-details screens. Map
+tiles and Leaflet are loaded from OpenStreetMap and unpkg, so map display
+requires an internet connection. No map credential is required. The map shows
+OpenStreetMap attribution; keep it visible when changing the map UI.
+
+## API Contract
+
+The mobile app and API share documented response shapes, validation, status
+codes, and fixture examples in [`docs/api-contract.md`](docs/api-contract.md).
+The API supports case-insensitive search by bathroom name or building using
+the optional `search` query parameter. The mobile app locally filters the
+loaded directory so list and map results update together.
+
+The official [Cal Poly Interactive Map](https://maps.calpoly.edu/) includes a
+gender-inclusive restroom layer, but this release does not import it. The
+source describes its data as current as of June 2024 and advisory/as-is, and
+the layer is marked export-disabled in the map configuration. See
+[`docs/campus-data.md`](docs/campus-data.md) for what was verified and why the
+app's demo seed records remain unchanged.
 
 ## Reviews And Privacy
 
@@ -123,11 +148,36 @@ From the repository root:
 npm test
 ```
 
-This runs backend persistence/duplicate/date-boundary tests, the existing web
-frontend lint/build checks, and the mobile TypeScript check. The automated
-tests cover file-backed SQLite persistence after closing and reopening the
-database, Los Angeles calendar-day rollover, and parallel API submissions.
+This runs backend persistence, discovery, validation, and
+duplicate/date-boundary tests; mobile discovery/contract utility tests; the
+existing web frontend lint/build checks; and the mobile TypeScript check.
+
+## Manual Mobile Smoke Test
+
+1. Start the API with `npm run dev:api` and confirm
+   `http://localhost:3000/api/health` returns `{"status":"ok"}`.
+2. Start the app with `npm run dev:mobile -- --lan`. For a phone, configure
+   `EXPO_PUBLIC_API_URL` in `packages/mobile-app/.env` to the computer's LAN
+   address, then restart Expo.
+3. Open the app and confirm the map markers and bathroom list appear.
+4. Confirm location has not been requested at launch. Tap **Use location**;
+   allow or deny it, then verify distance sorting or usable alphabetical
+   fallback respectively. Retry from the location button.
+5. Search for a bathroom or building; verify both map markers and list rows
+   filter together. Clear the query and verify both restore.
+6. Tap **Cleanliness 4+** and each busyness filter; verify results reflect
+   available ratings/reports. Clear filters and verify the full list returns.
+7. Tap a marker and a list row; verify each opens the matching bathroom
+   details. Return to the map and verify the selected bathroom remains
+   highlighted when it is still in the search results.
+8. Submit a valid cleanliness and busyness report. Verify the updated average,
+   count, busyness, timestamp, and reviewed-today state. Submit again and
+   verify the duplicate-report response is handled.
+9. Disconnect the API and reload; verify the app presents an actionable error
+   and retry recovers when the service returns.
 
 The physical-device Expo Go flow and external OpenStreetMap tile/CDN loading
-must still be verified on a phone with the API host reachable on the LAN.
-Demo bathroom coordinates also need replacement with team-verified data.
+still require manual verification on a phone with the API host reachable over
+the LAN. The checked-in bathroom coordinates are demo data and need replacement
+with team-verified information before representing the app as ready for campus
+navigation.

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Bathroom, Coordinates } from '../main/types';
@@ -18,6 +18,11 @@ function makeMapHtml(bathrooms: Bathroom[], location: Coordinates | null, select
   const bathroomJson = safeJson(bathrooms);
   const locationJson = safeJson(location);
   const selectedJson = safeJson(selectedId);
+  const selectedBathroom = bathrooms.find((bathroom) => bathroom.id === selectedId);
+  const focus = selectedBathroom
+    ? { latitude: selectedBathroom.latitude, longitude: selectedBathroom.longitude }
+    : location;
+  const focusJson = safeJson(focus);
 
   return `<!DOCTYPE html>
 <html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -31,8 +36,10 @@ html,body,#map{height:100%;width:100%;margin:0;background:#e8edf2} .leaflet-cont
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const bathrooms=${bathroomJson}; const userLocation=${locationJson}; const selectedId=${selectedJson};
-const center=[35.3003,-120.6625];
-const map=L.map('map',{zoomControl:false,attributionControl:true}).setView(center,16);
+const focus=${focusJson}; const defaultCenter=[35.3003,-120.6625];
+const center=focus?[focus.latitude,focus.longitude]:defaultCenter;
+window.onerror=()=>window.ReactNativeWebView.postMessage(JSON.stringify({type:'error'}));
+const map=L.map('map',{zoomControl:false,attributionControl:true}).setView(center,selectedId?18:16);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
 bathrooms.forEach((bathroom)=>{
@@ -45,6 +52,7 @@ if(userLocation){L.marker([userLocation.latitude,userLocation.longitude],{icon:L
 }
 
 export function CampusMap({ bathrooms, location, selectedBathroomId, onSelectBathroom }: Props) {
+  const [mapError, setMapError] = useState(false);
   const html = useMemo(
     () => makeMapHtml(bathrooms, location, selectedBathroomId),
     [bathrooms, location, selectedBathroomId],
@@ -63,10 +71,18 @@ export function CampusMap({ bathrooms, location, selectedBathroomId, onSelectBat
 
   function handleMessage(event: WebViewMessageEvent) {
     try {
-      const message = JSON.parse(event.nativeEvent.data) as { type?: string; id?: string };
-      if (message.type === 'select' && message.id) onSelectBathroom(message.id);
-    } catch {
-      // Ignore malformed messages from the embedded map.
+      const message: unknown = JSON.parse(event.nativeEvent.data);
+      if (typeof message !== 'object' || message === null || Array.isArray(message)) {
+        throw new Error('Map sent an invalid message.');
+      }
+      if ('type' in message && message.type === 'select' && 'id' in message
+        && typeof message.id === 'string') {
+        onSelectBathroom(message.id);
+      } else if ('type' in message && message.type === 'error') {
+        setMapError(true);
+      }
+    } catch (error) {
+      console.warn('Unable to process an embedded map message.', error);
     }
   }
 
@@ -82,6 +98,14 @@ export function CampusMap({ bathrooms, location, selectedBathroomId, onSelectBat
         renderLoading={() => <ActivityIndicator style={styles.loading} color="#3478F6" />}
         style={styles.webView}
       />
+      {mapError ? (
+        <View style={styles.mapError}>
+          <Text style={styles.mapErrorTitle}>Map tiles could not be loaded</Text>
+          <Text style={styles.mapErrorText}>
+            Check your internet connection. Bathroom search and the list remain available.
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -90,6 +114,17 @@ const styles = StyleSheet.create({
   mapFrame: { flex: 1, overflow: 'hidden', backgroundColor: '#E8EDF2' },
   webView: { flex: 1, backgroundColor: 'transparent' },
   loading: { position: 'absolute', alignSelf: 'center', top: '48%', zIndex: 1 },
+  mapError: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 52,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  mapErrorTitle: { color: '#253143', fontSize: 13, fontWeight: '700' },
+  mapErrorText: { color: '#667085', fontSize: 11, lineHeight: 16, marginTop: 4 },
   webFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: '#E8EDF2' },
   webFallbackTitle: { color: '#253143', fontSize: 18, fontWeight: '700' },
   webFallbackText: { color: '#667085', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 8, maxWidth: 360 },

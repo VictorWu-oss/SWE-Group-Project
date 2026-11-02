@@ -1,0 +1,9 @@
+{
+  "bathroom": {
+    "id": "demo-optional-fields",
+    "name": "Demo Bathroom",
+    "building": "Demo Building",
+    "latitude": 35.3,
+    "longitude": -120.66
+  }
+}

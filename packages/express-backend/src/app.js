@@ -9,8 +9,11 @@ function createApiApp(database) {
   app.get('/api/health', (_request, response) => response.json({ status: 'ok' }));
   app.use('/api/bathrooms', createBathroomRouter(database));
   app.use((error, _request, response, _next) => {
+    if (error instanceof SyntaxError && 'body' in error) {
+      return response.status(400).json({ error: 'Request body must be valid JSON.' });
+    }
     console.error(error);
-    response.status(500).json({ error: 'The server could not complete the request.' });
+    return response.status(500).json({ error: 'The server could not complete the request.' });
   });
   return app;
 }

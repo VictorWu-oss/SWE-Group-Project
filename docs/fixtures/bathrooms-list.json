@@ -1,0 +1,17 @@
+{
+  "bathrooms": [
+    {
+      "id": "demo-university-union",
+      "name": "Demo Bathroom 01",
+      "building": "University Union",
+      "latitude": 35.3002,
+      "longitude": -120.6608,
+      "demo": true,
+      "averageCleanliness": null,
+      "reviewCount": 0,
+      "busyness": null,
+      "busynessReportedAt": null,
+      "reviewedToday": false
+    }
+  ]
+}
