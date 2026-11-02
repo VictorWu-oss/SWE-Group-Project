@@ -108,6 +108,32 @@ Open the QR code with Expo Go on your phone. If you change the `.env` file,
 restart Expo so it reloads the setting. For the Android emulator, use
 `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000/api` instead.
 
+### Mobile Setup Troubleshooting
+
+- **"Couldn't load bathrooms" on a phone:** the app is
+  probably using `localhost`, which means the phone itself.
+  Check that `packages/mobile-app/.env` exists and its IP
+  matches the one in Expo's `Metro: exp://<ip>:8081` line,
+  then restart Expo with `npm run dev:mobile -- -c`.
+- **Your IP changes between networks.** Update `.env` when
+  you switch Wi-Fi (home, campus, hotspot).
+- **"Cannot GET /bathrooms":** API routes start with `/api`,
+  e.g. `http://<ip>:3000/api/bathrooms`.
+- **Test from the phone first:** open
+  `http://<ip>:3000/api/health` in the phone's browser. If it
+  does not load, the network or firewall is blocking it.
+- **Campus Wi-Fi (eduroam) blocks phone-to-laptop
+  connections.** `--tunnel` lets Expo Go load the app, but
+  the phone still cannot reach the API. Use home Wi-Fi or
+  connect the laptop to your phone's hotspot instead.
+- **"Port 3000 is already in use":** the API is already
+  running in another terminal. Run `lsof -i :3000` to find
+  it, and keep only one copy running.
+- **Keep the repo out of iCloud-synced folders** (Desktop,
+  Documents). iCloud can empty files and corrupt `.git`,
+  causing errors like `couldn't read .git/packed-refs` or
+  `EJSONPARSE`. Clone into a folder like `~/dev` instead.
+
 ## Maps And Location
 
 The 2D map uses Leaflet and OpenStreetMap tiles; it requires an internet
