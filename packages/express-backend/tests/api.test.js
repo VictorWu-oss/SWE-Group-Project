@@ -29,6 +29,19 @@ test('parallel review requests accept one and reject the duplicate', async () =>
       fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
     ]);
     assert.deepEqual(responses.map((response) => response.status).sort(), [201, 409]);
+    const acceptedResponse = responses.find((response) => response.status === 201);
+    const duplicateResponse = responses.find((response) => response.status === 409);
+    assert.ok(acceptedResponse);
+    assert.ok(duplicateResponse);
+    assert.deepEqual(await duplicateResponse.json(), {
+      error: "You've already submitted today's review for this bathroom.",
+    });
+    const { bathroom: acceptedBathroom } = await acceptedResponse.json();
+    assert.equal(acceptedBathroom.id, 'demo-bathroom');
+    assert.equal(acceptedBathroom.averageCleanliness, 4);
+    assert.equal(acceptedBathroom.reviewCount, 1);
+    assert.equal(acceptedBathroom.busyness, 'Medium');
+    assert.equal(acceptedBathroom.reviewedToday, true);
     const bathroomsResponse = await fetch(`http://127.0.0.1:${address.port}/api/bathrooms?installationId=installation-12345678`);
     const { bathrooms } = await bathroomsResponse.json();
     assert.equal(bathrooms[0].reviewCount, 1);
