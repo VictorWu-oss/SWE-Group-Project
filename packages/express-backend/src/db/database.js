@@ -139,14 +139,22 @@ function migrateBathroomDirectory(database) {
 
 function seedBathrooms(database, seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'))) {
   const upsert = database.prepare(`
-  INSERT INTO bathrooms (id, name, building, latitude, longitude, demo)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO bathrooms (
+    id, name, building, latitude, longitude, demo, restroom_type,
+    directory_verified, verification_source, verified_at, verified_by
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     building = excluded.building,
     latitude = excluded.latitude,
     longitude = excluded.longitude,
-    demo = excluded.demo
+    demo = excluded.demo,
+    restroom_type = excluded.restroom_type,
+    directory_verified = excluded.directory_verified,
+    verification_source = excluded.verification_source,
+    verified_at = excluded.verified_at,
+    verified_by = excluded.verified_by
   WHERE bathrooms.directory_verified = 0
   `);
 
@@ -155,9 +163,14 @@ function seedBathrooms(database, seedData = JSON.parse(fs.readFileSync(seedPath,
       bathroom.id,
       bathroom.name,
       bathroom.building,
-      bathroom.latitude,
-      bathroom.longitude,
+      bathroom.latitude ?? null,
+      bathroom.longitude ?? null,
       bathroom.demo ? 1 : 0,
+      bathroom.restroomType || null,
+      bathroom.directoryVerified ? 1 : 0,
+      bathroom.verificationSource || null,
+      bathroom.verifiedAt || null,
+      bathroom.verifiedBy || null,
     );
   }
 }

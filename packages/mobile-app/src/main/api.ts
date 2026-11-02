@@ -7,15 +7,18 @@ import type {
   MaintenanceReportStatus,
 } from './types';
 import { parseBathroom } from './types';
+import { Platform } from 'react-native';
+import {
+  ApiError,
+  apiHttpError,
+  apiInvalidResponseError,
+  apiTimeoutError,
+  apiUnreachableError,
+} from './apiErrors';
+export { ApiError } from './apiErrors';
 
-const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
-
-export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_URL = (Platform.OS === 'web' ? 'http://localhost:3000/api' : configuredApiUrl).replace(/\/$/, '');
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -23,14 +26,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   let response: Response;
+  const endpoint = `${API_URL}${path}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(endpoint, {
       ...options,
+      signal: options?.signal || controller.signal,
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...options?.headers },
     });
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw apiTimeoutError(API_URL, endpoint);
+    }
     const detail = error instanceof Error ? ` ${error.message}` : '';
-    throw new ApiError(`Unable to reach the bathroom service.${detail}`, 0);
+    throw apiUnreachableError(API_URL, endpoint, detail);
+  } finally {
+    clearTimeout(timeout);
   }
 
   let body: unknown;
@@ -38,7 +50,7 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
     body = await response.json();
   } catch {
     if (response.ok) {
-      throw new ApiError('Bathroom service returned an invalid response.', response.status);
+      throw apiInvalidResponseError('Bathroom service returned an invalid response.', response.status);
     }
     body = null;
   }
@@ -47,7 +59,7 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
     const message = isRecord(body) && typeof body.error === 'string'
       ? body.error
       : `Bathroom service request failed (${response.status}).`;
-    throw new ApiError(message, response.status);
+    throw apiHttpError(message, response.status, endpoint);
   }
 
   return body;
@@ -55,7 +67,7 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
 
 function responseField(body: unknown, field: string): unknown {
   if (!isRecord(body) || !(field in body)) {
-    throw new ApiError('Bathroom service returned an invalid response.', 502);
+    throw apiInvalidResponseError('Bathroom service returned an invalid response.');
   }
   return body[field];
 }
@@ -69,7 +81,7 @@ export async function fetchBathrooms(
   const body = await request(`/bathrooms?${query.toString()}`);
   const value = responseField(body, 'bathrooms');
   if (!Array.isArray(value)) {
-    throw new ApiError('Bathroom service returned an invalid bathroom list.', 502);
+    throw apiInvalidResponseError('Bathroom service returned an invalid bathroom list.');
   }
   return value.map(parseBathroom);
 }
@@ -117,7 +129,7 @@ function parseMaintenanceReport(value: unknown): MaintenanceReport {
     || typeof value.updatedAt !== 'string'
     || Number.isNaN(Date.parse(value.updatedAt))
   ) {
-    throw new ApiError('Bathroom service returned an invalid maintenance report.', 502);
+    throw apiInvalidResponseError('Bathroom service returned an invalid maintenance report.');
   }
   return {
     id: value.id,
@@ -136,7 +148,7 @@ export async function fetchMaintenanceReports(bathroomId: string): Promise<Maint
   );
   const reports = responseField(body, 'reports');
   if (!Array.isArray(reports)) {
-    throw new ApiError('Bathroom service returned an invalid maintenance report list.', 502);
+    throw apiInvalidResponseError('Bathroom service returned an invalid maintenance report list.');
   }
   return reports.map(parseMaintenanceReport);
 }

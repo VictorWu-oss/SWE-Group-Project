@@ -9,6 +9,7 @@ export default function DiscoveryRoute() {
     bathrooms,
     loading,
     error,
+    errorCode,
     reloadBathrooms,
   } = useAppData();
 
@@ -21,11 +22,20 @@ export default function DiscoveryRoute() {
   }
 
   if (error || !installationId) {
+    const guidance = errorCode === 'API_UNREACHABLE'
+      ? 'Meaning: your phone cannot reach the computer running the API. Make sure both devices share Wi-Fi, the backend is running, and .env uses the computer Wi-Fi IPv4 address (not the WSL address).'
+      : errorCode === 'API_TIMEOUT'
+        ? 'Meaning: the API did not respond in time. Check that npm run dev:api is running and that Windows Firewall allows Node.js on your private network.'
+        : errorCode === 'API_HTTP_ERROR'
+          ? 'Meaning: the server was reached but returned an error. Check the backend terminal for the matching status or error message.'
+          : errorCode === 'API_INVALID_RESPONSE'
+            ? 'Meaning: the server responded with data the app could not understand. Restart the backend and try again.'
+            : '';
     return (
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <ScreenState
           title="Couldn't load bathrooms"
-          message={error || 'The anonymous installation ID is unavailable.'}
+          message={`${error || 'The anonymous installation ID is unavailable.'}${guidance ? `\n\n${guidance}` : ''}`}
           actionLabel="Try again"
           onAction={() => { void reloadBathrooms(); }}
         />
