@@ -1,0 +1,9 @@
+{
+  "name": "ToiletTracker",
+  "short_name": "ToiletTracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fa",
+  "theme_color": "#3478f6",
+  "description": "Find accessible and all-gender bathrooms around Cal Poly."
+}
