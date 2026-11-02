@@ -4,8 +4,15 @@ const {
   getBathroomSummary,
   submitReview,
 } = require('../services/reviewService');
+const {
+  getMaintenanceReports,
+  createMaintenanceReport,
+  updateMaintenanceStatus,
+} = require('../services/maintenanceService');
+const { updateBathroomDirectory } = require('../services/directoryService');
+const { timingSafeEqual } = require('node:crypto');
 
-function createBathroomRouter(database) {
+function createBathroomRouter(database, { adminToken, adminName }) {
   const router = express.Router();
 
   router.get('/', (request, response) => {
@@ -51,7 +58,86 @@ function createBathroomRouter(database) {
     }
   });
 
+  router.patch('/:bathroomId/directory', (request, response, next) => {
+    if (!authorizeAdmin(request, response, adminToken)) return undefined;
+    try {
+      const row = updateBathroomDirectory(
+        database,
+        request.params.bathroomId,
+        request.body,
+        new Date(),
+        adminName,
+      );
+      return response.json({ bathroom: getBathroomSummary(database, row.id, '') });
+    } catch (error) {
+      return sendServiceError(error, response, next);
+    }
+  });
+
+  router.get('/:bathroomId/maintenance-reports', (request, response) => {
+    if (!database.prepare('SELECT 1 FROM bathrooms WHERE id = ?').get(request.params.bathroomId)) {
+      return response.status(404).json({ error: 'Bathroom not found.' });
+    }
+    return response.json({ reports: getMaintenanceReports(database, request.params.bathroomId) });
+  });
+
+  router.post('/:bathroomId/maintenance-reports', (request, response, next) => {
+    try {
+      const report = createMaintenanceReport(
+        database,
+        request.params.bathroomId,
+        request.body,
+      );
+      return response.status(201).json({ report });
+    } catch (error) {
+      return sendServiceError(error, response, next);
+    }
+  });
+
+  router.patch('/maintenance-reports/:reportId', (request, response, next) => {
+    if (!authorizeAdmin(request, response, adminToken)) return undefined;
+    const reportId = Number(request.params.reportId);
+    if (!Number.isSafeInteger(reportId) || reportId < 1) {
+      return response.status(400).json({ error: 'Maintenance report ID must be a positive integer.' });
+    }
+    try {
+      const report = updateMaintenanceStatus(
+        database,
+        reportId,
+        request.body,
+        new Date(),
+        adminName,
+      );
+      return response.json({ report });
+    } catch (error) {
+      return sendServiceError(error, response, next);
+    }
+  });
+
   return router;
+}
+
+function authorizeAdmin(request, response, expectedToken) {
+  if (!expectedToken) {
+    response.status(503).json({ error: 'Administrative actions are not configured.' });
+    return false;
+  }
+  const authorization = request.get('authorization') || '';
+  const suppliedToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  const expected = Buffer.from(expectedToken);
+  const supplied = Buffer.from(suppliedToken);
+  if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+    response.status(401).json({ error: 'A valid administrator token is required.' });
+    return false;
+  }
+  return true;
+}
+
+function sendServiceError(error, response, next) {
+  if (error.statusCode) return response.status(error.statusCode).json({ error: error.message });
+  return next(error);
 }
 
 module.exports = { createBathroomRouter };

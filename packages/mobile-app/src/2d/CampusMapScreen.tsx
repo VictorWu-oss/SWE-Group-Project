@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +16,9 @@ import type { Bathroom, Coordinates } from '../main/types';
 import {
   filterAndSortBathrooms,
   formatDistance,
+  type AccessibilityFilter,
+  type AmenityFilter,
+  type BathroomSort,
   type BusynessFilter,
   type CleanlinessFilter,
 } from '../main/discovery';
@@ -27,6 +31,30 @@ type Props = {
 type LocationStatus = 'idle' | 'loading' | 'granted' | 'denied' | 'unavailable';
 
 const busynessFilters: Exclude<BusynessFilter, 'any' | null>[] = ['Low', 'Medium', 'High'];
+const accessibilityFilters: AccessibilityFilter[] = [
+  'wheelchairAccessible',
+  'grabBars',
+  'accessibleSink',
+  'stepFreeRoute',
+];
+const amenityFilters: AmenityFilter[] = [
+  'babyChanging',
+  'menstrualProducts',
+  'hooks',
+  'shelves',
+];
+const filterLabels: Record<string, string> = {
+  'single-stall': 'Single stall',
+  'multi-stall': 'Multi-stall',
+  wheelchairAccessible: 'Wheelchair accessible',
+  grabBars: 'Grab bars',
+  accessibleSink: 'Accessible sink',
+  stepFreeRoute: 'Step-free route',
+  babyChanging: 'Baby changing',
+  menstrualProducts: 'Menstrual products',
+  hooks: 'Hooks',
+  shelves: 'Shelves',
+};
 
 export function CampusMapScreen({ bathrooms }: Props) {
   const [search, setSearch] = useState('');
@@ -35,6 +63,16 @@ export function CampusMapScreen({ bathrooms }: Props) {
   const [selectedBathroomId, setSelectedBathroomId] = useState<string | null>(null);
   const [cleanlinessFilter, setCleanlinessFilter] = useState<CleanlinessFilter>('any');
   const [busynessFilter, setBusynessFilter] = useState<BusynessFilter>('any');
+  const [restroomTypes, setRestroomTypes] = useState<Array<'single-stall' | 'multi-stall'>>([]);
+  const [accessibility, setAccessibility] = useState<AccessibilityFilter[]>([]);
+  const [amenities, setAmenities] = useState<AmenityFilter[]>([]);
+  const [sort, setSort] = useState<BathroomSort>('recommended');
+
+  function toggleValue<T extends string>(current: T[], value: T, update: (next: T[]) => void) {
+    update(current.includes(value)
+      ? current.filter((entry) => entry !== value)
+      : [...current, value]);
+  }
 
   async function locateUser() {
     setSelectedBathroomId(null);
@@ -68,8 +106,9 @@ export function CampusMapScreen({ bathrooms }: Props) {
       location,
       cleanlinessFilter,
       busynessFilter,
+      { restroomTypes, accessibility, amenities, sort },
     ),
-    [bathrooms, busynessFilter, cleanlinessFilter, location, search],
+    [accessibility, amenities, bathrooms, busynessFilter, cleanlinessFilter, location, restroomTypes, search, sort],
   );
   const visibleBathrooms = useMemo(
     () => orderedBathrooms.map(({ bathroom }) => bathroom),
@@ -77,6 +116,21 @@ export function CampusMapScreen({ bathrooms }: Props) {
   );
   const selectedIsVisible = visibleBathrooms.some(({ id }) => id === selectedBathroomId);
   const focusedBathroomId = selectedIsVisible ? selectedBathroomId : null;
+  const hasActiveFilters = cleanlinessFilter !== 'any'
+    || busynessFilter !== 'any'
+    || restroomTypes.length > 0
+    || accessibility.length > 0
+    || amenities.length > 0
+    || sort !== 'recommended';
+
+  function clearFilters() {
+    setCleanlinessFilter('any');
+    setBusynessFilter('any');
+    setRestroomTypes([]);
+    setAccessibility([]);
+    setAmenities([]);
+    setSort('recommended');
+  }
 
   function selectBathroom(id: string) {
     setSelectedBathroomId(id);
@@ -173,7 +227,37 @@ export function CampusMapScreen({ bathrooms }: Props) {
         {locationStatus === 'denied' || locationStatus === 'unavailable' ? (
           <Text style={styles.permissionNote}>{locationDescription}</Text>
         ) : null}
-        <View style={styles.filters} accessibilityLabel="Bathroom rating filters">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filters}
+          accessibilityLabel="Bathroom filters"
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: sort === 'name' }}
+            onPress={() => setSort((current) => current === 'name' ? 'recommended' : 'name')}
+            style={[styles.filterChip, sort === 'name' && styles.filterSelected]}
+          >
+            <Text style={[styles.filterText, sort === 'name' && styles.filterTextSelected]}>Name A-Z</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: sort === 'distance' }}
+            onPress={() => setSort((current) => current === 'distance' ? 'recommended' : 'distance')}
+            style={[styles.filterChip, sort === 'distance' && styles.filterSelected]}
+          >
+            <Text style={[styles.filterText, sort === 'distance' && styles.filterTextSelected]}>Nearest</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: sort === 'rating' }}
+            onPress={() => setSort((current) => current === 'rating' ? 'recommended' : 'rating')}
+            style={[styles.filterChip, sort === 'rating' && styles.filterSelected]}
+          >
+            <Text style={[styles.filterText, sort === 'rating' && styles.filterTextSelected]}>Top rated</Text>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ selected: cleanlinessFilter === 'four-plus' }}
@@ -209,27 +293,64 @@ export function CampusMapScreen({ bathrooms }: Props) {
               </Text>
             </Pressable>
           ))}
-          {(cleanlinessFilter !== 'any' || busynessFilter !== 'any') ? (
+          {(['single-stall', 'multi-stall'] as const).map((value) => (
+            <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: restroomTypes.includes(value) }}
+              onPress={() => toggleValue(restroomTypes, value, setRestroomTypes)}
+              style={[styles.filterChip, restroomTypes.includes(value) && styles.filterSelected]}
+            >
+              <Text style={[styles.filterText, restroomTypes.includes(value) && styles.filterTextSelected]}>
+                {filterLabels[value]}
+              </Text>
+            </Pressable>
+          ))}
+          {accessibilityFilters.map((value) => (
+            <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: accessibility.includes(value) }}
+              onPress={() => toggleValue(accessibility, value, setAccessibility)}
+              style={[styles.filterChip, accessibility.includes(value) && styles.filterSelected]}
+            >
+              <Text style={[styles.filterText, accessibility.includes(value) && styles.filterTextSelected]}>
+                {filterLabels[value]}
+              </Text>
+            </Pressable>
+          ))}
+          {amenityFilters.map((value) => (
+            <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: amenities.includes(value) }}
+              onPress={() => toggleValue(amenities, value, setAmenities)}
+              style={[styles.filterChip, amenities.includes(value) && styles.filterSelected]}
+            >
+              <Text style={[styles.filterText, amenities.includes(value) && styles.filterTextSelected]}>
+                {filterLabels[value]}
+              </Text>
+            </Pressable>
+          ))}
+          {hasActiveFilters ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => {
-                setCleanlinessFilter('any');
-                setBusynessFilter('any');
-              }}
+              accessibilityLabel="Clear all bathroom filters"
+              onPress={clearFilters}
               style={styles.clearFilters}
             >
-              <Text style={styles.clearFiltersText}>Clear</Text>
+              <Text style={styles.clearFiltersText}>Clear all</Text>
             </Pressable>
           ) : null}
-        </View>
+        </ScrollView>
 
         {orderedBathrooms.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="map-search-outline" size={28} color="#98A2B3" />
             <Text style={styles.emptyTitle}>No bathrooms found</Text>
             <Text style={styles.emptyText}>
-              {cleanlinessFilter !== 'any' || busynessFilter !== 'any'
-                ? 'Try changing or clearing the rating filters.'
+              {hasActiveFilters
+                ? 'No bathrooms match all selected filters. Change or clear filters to see more results.'
                 : 'Try another bathroom name or building.'}
             </Text>
           </View>
@@ -262,6 +383,9 @@ export function CampusMapScreen({ bathrooms }: Props) {
                     </Text>
                     <Text style={styles.buildingName} numberOfLines={1}>
                       {item.bathroom.building}
+                    </Text>
+                    <Text style={item.bathroom.directoryVerified ? styles.verifiedText : styles.unverifiedText}>
+                      {item.bathroom.directoryVerified ? 'Verified directory' : 'Demo / unverified'}
                     </Text>
                   </View>
                   <View style={styles.rowMeta}>
@@ -362,7 +486,8 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: 12, color: '#475467' },
   permissionNote: { color: '#667085', fontSize: 13, marginTop: -7, marginBottom: 7 },
-  filters: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 9, flexWrap: 'wrap' },
+  filterScroll: { flexGrow: 0, marginBottom: 9 },
+  filters: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingRight: 4 },
   filterChip: {
     borderWidth: 1,
     borderColor: '#D5DCE6',
@@ -403,6 +528,8 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 3 },
   bathroomName: { fontSize: 16, fontWeight: '600', color: '#202B3A' },
   buildingName: { fontSize: 13, color: '#667085' },
+  verifiedText: { fontSize: 11, color: '#126B4B', fontWeight: '600' },
+  unverifiedText: { fontSize: 11, color: '#8D5812', fontWeight: '600' },
   rowMeta: { alignItems: 'flex-end', gap: 3 },
   ratingLine: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   ratingValue: { color: '#475467', fontSize: 13, fontWeight: '600' },

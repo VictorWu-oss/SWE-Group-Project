@@ -1,4 +1,11 @@
-import type { Bathroom, Busyness, CleanlinessRating } from './types';
+import type {
+  Bathroom,
+  Busyness,
+  CleanlinessRating,
+  MaintenanceCategory,
+  MaintenanceReport,
+  MaintenanceReportStatus,
+} from './types';
 import { parseBathroom } from './types';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
@@ -92,4 +99,60 @@ export async function submitBathroomReview(
     },
   );
   return parseBathroom(responseField(body, 'bathroom'));
+}
+
+function parseMaintenanceReport(value: unknown): MaintenanceReport {
+  if (
+    !isRecord(value)
+    || typeof value.id !== 'number'
+    || !Number.isInteger(value.id)
+    || typeof value.bathroomId !== 'string'
+    || typeof value.category !== 'string'
+    || !['cleanliness', 'supplies', 'fixture', 'accessibility', 'safety', 'other'].includes(value.category)
+    || typeof value.description !== 'string'
+    || typeof value.status !== 'string'
+    || !['open', 'in_progress', 'resolved', 'dismissed'].includes(value.status)
+    || typeof value.createdAt !== 'string'
+    || Number.isNaN(Date.parse(value.createdAt))
+    || typeof value.updatedAt !== 'string'
+    || Number.isNaN(Date.parse(value.updatedAt))
+  ) {
+    throw new ApiError('Bathroom service returned an invalid maintenance report.', 502);
+  }
+  return {
+    id: value.id,
+    bathroomId: value.bathroomId,
+    category: value.category as MaintenanceCategory,
+    description: value.description,
+    status: value.status as MaintenanceReportStatus,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+  };
+}
+
+export async function fetchMaintenanceReports(bathroomId: string): Promise<MaintenanceReport[]> {
+  const body = await request(
+    `/bathrooms/${encodeURIComponent(bathroomId)}/maintenance-reports`,
+  );
+  const reports = responseField(body, 'reports');
+  if (!Array.isArray(reports)) {
+    throw new ApiError('Bathroom service returned an invalid maintenance report list.', 502);
+  }
+  return reports.map(parseMaintenanceReport);
+}
+
+export async function submitMaintenanceReport(
+  bathroomId: string,
+  installationId: string,
+  category: MaintenanceCategory,
+  description: string,
+): Promise<MaintenanceReport> {
+  const body = await request(
+    `/bathrooms/${encodeURIComponent(bathroomId)}/maintenance-reports`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ installationId, category, description }),
+    },
+  );
+  return parseMaintenanceReport(responseField(body, 'report'));
 }

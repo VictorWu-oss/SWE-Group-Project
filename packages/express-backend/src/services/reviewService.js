@@ -4,6 +4,7 @@ const losAngelesDate = new Intl.DateTimeFormat('en-US', {
   month: '2-digit',
   day: '2-digit',
 });
+const { mapDirectoryBathroom } = require('./directoryService');
 const busynessLevels = ['Low', 'Medium', 'High'];
 
 function getLosAngelesDay(date = new Date()) {
@@ -30,12 +31,13 @@ class BathroomNotFoundError extends Error {
 }
 
 function getBathroomSummaries(database, installationId, date = new Date(), search = '') {
-  return getBathroomRows(database, installationId, date, { search }).map(mapBathroom);
+  return getBathroomRows(database, installationId, date, { search })
+    .map((row) => mapDirectoryBathroom(row, date));
 }
 
 function getBathroomSummary(database, bathroomId, installationId, date = new Date()) {
   const [row] = getBathroomRows(database, installationId, date, { bathroomId });
-  return row ? mapBathroom(row) : null;
+  return row ? mapDirectoryBathroom(row, date) : null;
 }
 
 function getBathroomRows(database, installationId, date, { bathroomId, search } = {}) {
@@ -52,8 +54,7 @@ function getBathroomRows(database, installationId, date, { bathroomId, search } 
   }
   const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
   return database.prepare(`
-    SELECT b.id, b.name, b.building, b.latitude, b.longitude, b.demo,
-      b.busyness, b.busyness_reported_at,
+    SELECT b.*,
       COUNT(r.id) AS review_count,
       AVG(r.cleanliness) AS average_cleanliness,
       EXISTS (
@@ -68,24 +69,6 @@ function getBathroomRows(database, installationId, date, { bathroomId, search } 
     GROUP BY b.id
     ORDER BY b.name COLLATE NOCASE
   `).all(...parameters);
-}
-
-function mapBathroom(row) {
-  return {
-    id: row.id,
-    name: row.name,
-    building: row.building,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    demo: Boolean(row.demo),
-    averageCleanliness: row.average_cleanliness == null
-      ? null
-      : Number(row.average_cleanliness.toFixed(1)),
-    reviewCount: row.review_count,
-    busyness: row.busyness,
-    busynessReportedAt: row.busyness_reported_at,
-    reviewedToday: Boolean(row.reviewed_today),
-  };
 }
 
 function submitReview(database, input, now = new Date()) {

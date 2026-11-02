@@ -2,8 +2,10 @@
 
 ToiletTracker is an account-free mobile app for finding bathrooms on the
 Cal Poly SLO campus and sharing cleanliness and busyness reports. The first
-milestone includes the 2D map, search, nearby list, bathroom details, and
-ratings. Directions, 3D maps, and text chat are later milestones.
+milestone includes the 2D map, search, synchronized directory filters,
+bathroom details, ratings, directions, operating-hours states, and maintenance
+reports. Campus-verified directory/safety data, a staff interface, 3D maps,
+and text chat remain future work.
 
 ## Requirements
 
@@ -37,7 +39,10 @@ npm run seed
 The SQLite file is created at
 `packages/express-backend/data/toilet-tracker.sqlite` and is ignored by Git.
 The API seeds the editable bathroom list on startup as well. Seeding upserts
-location/name fields but preserves submitted reviews and busyness reports.
+unverified location/name fields but preserves submitted reviews, busyness,
+verified directory fields, and maintenance reports. Unknown coordinates,
+hours, accessibility, and amenities are represented as unknown rather than
+assumed absent or open.
 
 ## Start The API
 
@@ -60,6 +65,20 @@ To use a different database file or port, create
 PORT=3000
 DATABASE_PATH=./data/toilet-tracker.sqlite
 ```
+
+Directory verification and maintenance-status management are disabled until
+the data owner configures backend-only credentials:
+
+```dotenv
+ADMIN_API_TOKEN=use-a-private-random-token
+ADMIN_DISPLAY_NAME=Facilities data owner
+```
+
+Never put `ADMIN_API_TOKEN` in the mobile app's `.env`, source control, or
+client requests. Management endpoints return `503` until configured. The
+token is a deployment-level gate, not a staff identity/role system. Setup,
+verification workflows, hours semantics, and report statuses are documented
+in [`docs/directory-safety-maintenance.md`](docs/directory-safety-maintenance.md).
 
 ## Start The Mobile App
 
@@ -102,10 +121,17 @@ Location permission is requested only when the user taps **Use location**.
 The map/list can be searched without location. The optional rating filters use
 the community cleanliness average (4+) and latest busyness report.
 
-The app uses Expo Router for its discovery and bathroom-details screens. Map
-tiles and Leaflet are loaded from OpenStreetMap and unpkg, so map display
-requires an internet connection. No map credential is required. The map shows
-OpenStreetMap attribution; keep it visible when changing the map UI.
+The app uses Expo Router for its discovery and bathroom-details screens. Its
+directory filters can combine community ratings, verified restroom type,
+verified accessibility, and amenities, with name/distance/rating sorting.
+Bathroom details show opening-hours state, sourced safety information,
+features, directions, and a user-submitted maintenance report workflow. Unknown
+or unverified data is labeled rather than inferred. The admin verification
+workflow is API-only; no campus directory, safety layer, or trusted operating
+hours source has yet been approved or imported. Map tiles and Leaflet are
+loaded from OpenStreetMap and unpkg, so map display requires an internet
+connection. No map credential is required. Keep OpenStreetMap attribution
+visible when changing the map UI.
 
 ## API Contract
 
@@ -114,6 +140,11 @@ codes, and fixture examples in [`docs/api-contract.md`](docs/api-contract.md).
 The API supports case-insensitive search by bathroom name or building using
 the optional `search` query parameter. The mobile app locally filters the
 loaded directory so list and map results update together.
+Operating hours use bathroom-local IANA timezones and support overnight
+intervals; unknown schedules do not imply open. Community busyness becomes
+stale after 24 hours and stale values are excluded from busyness filters.
+Maintenance submissions are public reports, not verified or resolved service
+requests.
 
 The official [Cal Poly Interactive Map](https://maps.calpoly.edu/) includes a
 gender-inclusive restroom layer, but this release does not import it. The
@@ -148,9 +179,10 @@ From the repository root:
 npm test
 ```
 
-This runs backend persistence, discovery, validation, and
-duplicate/date-boundary tests; mobile discovery/contract utility tests; the
-existing web frontend lint/build checks; and the mobile TypeScript check.
+This runs backend persistence, directory, maintenance, validation,
+permission, and timezone/staleness tests; mobile discovery/filter/contract
+utility tests; existing web frontend lint/build checks; and the mobile
+TypeScript check.
 
 ## Manual Mobile Smoke Test
 
@@ -173,11 +205,15 @@ existing web frontend lint/build checks; and the mobile TypeScript check.
 8. Submit a valid cleanliness and busyness report. Verify the updated average,
    count, busyness, timestamp, and reviewed-today state. Submit again and
    verify the duplicate-report response is handled.
-9. Disconnect the API and reload; verify the app presents an actionable error
-   and retry recovers when the service returns.
+9. Submit a maintenance report; verify it appears with `Submitted` status.
+   Management status changes require the private backend admin token.
+10. Disconnect the API and reload; verify the app presents an actionable error
+    and retry recovers when the service returns.
 
 The physical-device Expo Go flow and external OpenStreetMap tile/CDN loading
 still require manual verification on a phone with the API host reachable over
-the LAN. The checked-in bathroom coordinates are demo data and need replacement
-with team-verified information before representing the app as ready for campus
-navigation.
+the LAN. In the detail screen, verify unknown hours/features are not presented
+as available. The checked-in bathroom coordinates are demo data and need
+replacement with team-verified information before representing the app as
+ready for campus navigation. See the [API contract](docs/api-contract.md) and
+[branch flows/data limitations](docs/directory-safety-maintenance.md).

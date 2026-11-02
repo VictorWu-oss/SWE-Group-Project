@@ -18,7 +18,11 @@ function makeMapHtml(bathrooms: Bathroom[], location: Coordinates | null, select
   const bathroomJson = safeJson(bathrooms);
   const locationJson = safeJson(location);
   const selectedJson = safeJson(selectedId);
-  const selectedBathroom = bathrooms.find((bathroom) => bathroom.id === selectedId);
+  const selectedBathroom = bathrooms.find((bathroom) => (
+    bathroom.id === selectedId
+    && bathroom.latitude !== null
+    && bathroom.longitude !== null
+  ));
   const focus = selectedBathroom
     ? { latitude: selectedBathroom.latitude, longitude: selectedBathroom.longitude }
     : location;
@@ -43,6 +47,7 @@ const map=L.map('map',{zoomControl:false,attributionControl:true}).setView(cente
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
 bathrooms.forEach((bathroom)=>{
+  if(typeof bathroom.latitude!=='number'||typeof bathroom.longitude!=='number') return;
   const active=bathroom.id===selectedId;
   const icon=L.divIcon({className:'',html:'<div class="toilet-pin '+(active?'active':'')+'">&#128701;</div>',iconSize:[38,38],iconAnchor:[19,19]});
   L.marker([bathroom.latitude,bathroom.longitude],{icon}).addTo(map).on('click',()=>window.ReactNativeWebView.postMessage(JSON.stringify({type:'select',id:bathroom.id})));

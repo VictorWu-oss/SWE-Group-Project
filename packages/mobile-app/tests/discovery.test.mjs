@@ -16,7 +16,20 @@ const bathroomFixtures = [
     reviewCount: 0,
     busyness: null,
     busynessReportedAt: null,
+    busynessStatus: 'unknown',
     reviewedToday: false,
+    restroomType: null,
+    amenities: null,
+    accessibility: null,
+    hours: null,
+    timezone: null,
+    openStatus: 'unknown',
+    indoorDirections: null,
+    safetyInfo: [],
+    directoryVerified: false,
+    verificationSource: null,
+    verifiedAt: null,
+    verifiedBy: null,
   },
   {
     id: 'near',
@@ -29,7 +42,25 @@ const bathroomFixtures = [
     reviewCount: 2,
     busyness: 'Low',
     busynessReportedAt: '2026-10-01T10:00:00.000Z',
+    busynessStatus: 'current',
     reviewedToday: false,
+    restroomType: 'single-stall',
+    amenities: { babyChanging: true, menstrualProducts: true, hooks: true, shelves: true },
+    accessibility: {
+      wheelchairAccessible: true,
+      grabBars: true,
+      accessibleSink: true,
+      stepFreeRoute: true,
+    },
+    hours: null,
+    timezone: null,
+    openStatus: 'unknown',
+    indoorDirections: null,
+    safetyInfo: [],
+    directoryVerified: true,
+    verificationSource: 'Campus facilities',
+    verifiedAt: '2026-10-01T10:00:00.000Z',
+    verifiedBy: 'Facilities contact',
   },
 ];
 
@@ -87,9 +118,71 @@ test('rating filters include only bathrooms with matching community reports', ()
   );
 });
 
+test('combined directory filters use only confirmed accessibility and amenities', () => {
+  assert.deepEqual(
+    filterAndSortBathrooms(bathroomFixtures, '', null, 'any', 'any', {
+      restroomTypes: ['single-stall'],
+      accessibility: ['wheelchairAccessible', 'stepFreeRoute'],
+      amenities: ['babyChanging', 'menstrualProducts'],
+      sort: 'rating',
+    }).map(({ bathroom }) => bathroom.id),
+    ['near'],
+  );
+  assert.deepEqual(
+    filterAndSortBathrooms(bathroomFixtures, '', null, 'any', 'any', {
+      restroomTypes: [],
+      accessibility: ['wheelchairAccessible'],
+      amenities: ['babyChanging'],
+      sort: 'recommended',
+    }).map(({ bathroom }) => bathroom.id),
+    ['near'],
+  );
+  const unverifiedWithValues = {
+    ...bathroomFixtures[0],
+    restroomType: 'single-stall',
+    amenities: { babyChanging: true, menstrualProducts: true, hooks: true, shelves: true },
+    accessibility: {
+      wheelchairAccessible: true,
+      grabBars: true,
+      accessibleSink: true,
+      stepFreeRoute: true,
+    },
+  };
+  assert.deepEqual(
+    filterAndSortBathrooms([unverifiedWithValues], '', null, 'any', 'any', {
+      restroomTypes: ['single-stall'],
+      accessibility: ['wheelchairAccessible'],
+      amenities: ['babyChanging'],
+      sort: 'recommended',
+    }),
+    [],
+  );
+});
+
+test('stale or unknown busyness does not match an active busyness filter', () => {
+  const staleBathroom = {
+    ...bathroomFixtures[1],
+    busyness: 'High',
+    busynessStatus: 'stale',
+  };
+  assert.deepEqual(
+    filterAndSortBathrooms([staleBathroom], '', null, 'any', 'High'),
+    [],
+  );
+});
+
 test('distance labels avoid claiming a distance when location is unavailable', () => {
   assert.equal(formatDistance(null), 'Distance unavailable');
   assert.equal(formatDistance(0), '0 ft away');
+  const missingCoordinates = { ...bathroomFixtures[0], latitude: null, longitude: null };
+  assert.equal(
+    filterAndSortBathrooms(
+      [missingCoordinates],
+      '',
+      { latitude: 35.3, longitude: -120.66 },
+    )[0].distanceKilometers,
+    null,
+  );
 });
 
 test('bathroom parsing accepts omitted optional fields but rejects invalid coordinates', () => {
@@ -108,10 +201,24 @@ test('bathroom parsing accepts omitted optional fields but rejects invalid coord
     reviewCount: 0,
     busyness: null,
     busynessReportedAt: null,
+    busynessStatus: 'unknown',
     reviewedToday: false,
+    restroomType: null,
+    amenities: null,
+    accessibility: null,
+    hours: null,
+    timezone: null,
+    openStatus: 'unknown',
+    indoorDirections: null,
+    safetyInfo: [],
+    directoryVerified: false,
+    verificationSource: null,
+    verifiedAt: null,
+    verifiedBy: null,
   });
   assert.throws(
     () => parseBathroom({ ...fixture.bathroom, latitude: 100 }),
-    /invalid location or identity fields/,
+    /invalid latitude/,
   );
+  assert.equal(parseBathroom({ ...fixture.bathroom, latitude: null, longitude: null }).latitude, null);
 });
