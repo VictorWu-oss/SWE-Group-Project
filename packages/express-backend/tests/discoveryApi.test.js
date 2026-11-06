@@ -1,7 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { createApiApp } = require('../src/app');
+const jwt = require('jsonwebtoken');
 const { createDatabase, seedBathrooms } = require('../src/db/database');
+
+const TOKEN_SECRET = 'test-jwt-secret';
+const AUTH_HEADER = `Bearer ${jwt.sign({ username: 'tester' }, TOKEN_SECRET)}`;
 
 async function withApi(callback) {
   const database = createDatabase(':memory:');
@@ -23,7 +27,7 @@ async function withApi(callback) {
       demo: true,
     },
   ]);
-  const server = createApiApp(database).listen(0, '127.0.0.1');
+  const server = createApiApp(database, { tokenSecret: TOKEN_SECRET }).listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   const address = server.address();
 
@@ -74,7 +78,7 @@ test('review endpoint reports malformed, unknown-bathroom, and invalid-value err
   await withApi(async (apiUrl) => {
     const invalidJson = await fetch(`${apiUrl}/bathrooms/union-west/reviews`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: AUTH_HEADER },
       body: '{',
     });
     assert.equal(invalidJson.status, 400);
@@ -82,7 +86,7 @@ test('review endpoint reports malformed, unknown-bathroom, and invalid-value err
 
     const invalidReview = await fetch(`${apiUrl}/bathrooms/union-west/reviews`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: AUTH_HEADER },
       body: JSON.stringify({
         installationId: 'installation-12345678',
         cleanliness: 6,
@@ -94,7 +98,7 @@ test('review endpoint reports malformed, unknown-bathroom, and invalid-value err
 
     const unknownBathroom = await fetch(`${apiUrl}/bathrooms/missing/reviews`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: AUTH_HEADER },
       body: JSON.stringify({
         installationId: 'installation-12345678',
         cleanliness: 4,
