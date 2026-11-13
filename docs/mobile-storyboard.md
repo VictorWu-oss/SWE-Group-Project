@@ -21,7 +21,9 @@ details, and submit a cleanliness or busyness report from my phone.
   by bathroom name.
 - Let users filter by saved cleanliness average (4+) and latest community
   busyness report, verified restroom type, verified accessibility, and
-  verified amenities. Synchronize filters between markers and list rows.
+  verified amenities. Also allow filtering to bathrooms with verified campus
+  safety-location information and label those bathrooms in the list.
+  Synchronize filters between markers and list rows.
 - Support combined filters, clearing them, and name/distance/rating sorting.
 
 ## Screen 3 — Search

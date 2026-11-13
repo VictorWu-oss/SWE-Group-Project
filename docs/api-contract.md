@@ -45,11 +45,14 @@ error, not a successful empty result.
 
 The discovery screen combines loaded summaries by average cleanliness `4+`,
 fresh latest busyness (`Low`, `Medium`, or `High`), verified restroom type,
-verified accessibility, and verified amenities. Combined filters use AND
-semantics; fields with `null`/unknown values never match. Stale busyness is
-older than 24 hours and does not match an active busyness filter. Sorting
-supports recommended (distance when opted-in, otherwise name), name, distance,
-and rating. The same filtered records are used by the map and list.
+verified accessibility, verified amenities, and verified campus safety
+information. A bathroom matches the campus safety filter only when it has a
+verified `campus_source` safety entry; user reports and unverified entries do
+not match. Combined filters use AND semantics; fields with `null`/unknown
+values never match. Stale busyness is older than 24 hours and does not match an
+active busyness filter. Sorting supports recommended (distance when opted-in,
+otherwise name), name, distance, and rating. The same filtered records are
+used by the map and list.
 
 All bathroom locations and directory attributes begin unverified. Missing hours
 are `unknown`, never assumed open. `openStatus` is calculated by the API only

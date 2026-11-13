@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { distanceBetween, filterAndSortBathrooms, formatDistance } from '../src/main/discovery.ts';
+import {
+  distanceBetween,
+  filterAndSortBathrooms,
+  formatDistance,
+  hasVerifiedCampusSafetyInfo,
+} from '../src/main/discovery.ts';
 import { parseBathroom } from '../src/main/types.ts';
 
 const bathroomFixtures = [
@@ -153,6 +158,56 @@ test('combined directory filters use only confirmed accessibility and amenities'
       restroomTypes: ['single-stall'],
       accessibility: ['wheelchairAccessible'],
       amenities: ['babyChanging'],
+      sort: 'recommended',
+    }),
+    [],
+  );
+});
+
+test('campus safety filter and label require a verified campus-source entry', () => {
+  const withSafetyInfo = {
+    ...bathroomFixtures[0],
+    safetyInfo: [{
+      text: 'Emergency phone at the west entrance.',
+      source: 'Approved campus safety directory',
+      kind: 'campus_source',
+      updatedAt: '2026-10-01T10:00:00.000Z',
+      verified: true,
+    }],
+  };
+  const unverifiedCampusInfo = {
+    ...withSafetyInfo,
+    id: 'unverified-campus-info',
+    safetyInfo: withSafetyInfo.safetyInfo.map((entry) => ({ ...entry, verified: false })),
+  };
+  const verifiedUserReport = {
+    ...withSafetyInfo,
+    id: 'verified-user-report',
+    safetyInfo: withSafetyInfo.safetyInfo.map((entry) => ({
+      ...entry,
+      kind: 'user_report',
+    })),
+  };
+
+  assert.equal(hasVerifiedCampusSafetyInfo(withSafetyInfo), true);
+  assert.equal(hasVerifiedCampusSafetyInfo(unverifiedCampusInfo), false);
+  assert.equal(hasVerifiedCampusSafetyInfo(verifiedUserReport), false);
+  assert.deepEqual(
+    filterAndSortBathrooms([withSafetyInfo, unverifiedCampusInfo, verifiedUserReport], '', null, 'any', 'any', {
+      restroomTypes: [],
+      accessibility: [],
+      amenities: [],
+      verifiedCampusSafetyInfo: true,
+      sort: 'recommended',
+    }).map(({ bathroom }) => bathroom.id),
+    ['far'],
+  );
+  assert.deepEqual(
+    filterAndSortBathrooms(bathroomFixtures, '', null, 'any', 'any', {
+      restroomTypes: [],
+      accessibility: [],
+      amenities: [],
+      verifiedCampusSafetyInfo: true,
       sort: 'recommended',
     }),
     [],

@@ -4,8 +4,10 @@ ToiletTracker is an account-free mobile app for finding bathrooms on the
 Cal Poly SLO campus and sharing cleanliness and busyness reports. The first
 milestone includes the 2D map, search, synchronized directory filters,
 bathroom details, ratings, directions, operating-hours states, and maintenance
-reports. Campus-verified directory/safety data, a staff interface, 3D maps,
-and text chat remain future work.
+reports. A campus safety-information label and filter are available for
+bathrooms with verified source entries; the source is pending approval, so no
+safety locations are currently populated. A staff interface, 3D maps, and
+text chat remain future work.
 
 ## Requirements
 
@@ -149,15 +151,17 @@ the community cleanliness average (4+) and latest busyness report.
 
 The app uses Expo Router for its discovery and bathroom-details screens. Its
 directory filters can combine community ratings, verified restroom type,
-verified accessibility, and amenities, with name/distance/rating sorting.
-Bathroom details show opening-hours state, sourced safety information,
-features, directions, and a user-submitted maintenance report workflow. Unknown
-or unverified data is labeled rather than inferred. The admin verification
-workflow is API-only; no campus directory, safety layer, or trusted operating
-hours source has yet been approved or imported. Map tiles and Leaflet are
-loaded from OpenStreetMap and unpkg, so map display requires an internet
-connection. No map credential is required. Keep OpenStreetMap attribution
-visible when changing the map UI.
+verified accessibility, amenities, and verified campus safety information,
+with name/distance/rating sorting. Bathroom details show opening-hours state,
+sourced safety information, features, directions, and a user-submitted
+maintenance report workflow. Unknown or unverified data is labeled rather than
+inferred. The safety filter only matches verified campus-source entries; no
+campus safety-location source has yet been approved or imported. The admin
+verification workflow is API-only, and no trusted operating-hours source has
+yet been approved or imported. Map tiles and Leaflet are loaded from
+OpenStreetMap and unpkg, so map display requires an internet connection. No map
+credential is required. Keep OpenStreetMap attribution visible when changing
+the map UI.
 
 ## API Contract
 
