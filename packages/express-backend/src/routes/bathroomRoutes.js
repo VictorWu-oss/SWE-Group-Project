@@ -12,7 +12,11 @@ const {
 const { updateBathroomDirectory } = require('../services/directoryService');
 const { timingSafeEqual } = require('node:crypto');
 
-function createBathroomRouter(database, { adminToken, adminName }) {
+function createBathroomRouter(database, {
+  adminToken,
+  adminName,
+  requireUser = (_request, _response, next) => next(),
+}) {
   const router = express.Router();
 
   router.get('/', (request, response) => {
@@ -40,7 +44,7 @@ function createBathroomRouter(database, { adminToken, adminName }) {
     return response.json({ bathroom });
   });
 
-  router.post('/:bathroomId/reviews', (request, response, next) => {
+  router.post('/:bathroomId/reviews', requireUser, (request, response, next) => {
     try {
       const requestBody = request.body;
       const reviewInput = typeof requestBody === 'object'

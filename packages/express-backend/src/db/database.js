@@ -44,6 +44,14 @@ function createDatabase(databasePath = process.env.DATABASE_PATH || path.join(__
       UNIQUE (installation_id, bathroom_id, review_day)
     );
     CREATE INDEX IF NOT EXISTS reviews_bathroom_idx ON reviews(bathroom_id);
+    -- Credentials for sign-in (#64). Sign-up (#63) writes to this table;
+    -- only bcrypt hashes are stored, never plain passwords.
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
   migrateBathroomDirectory(database);
   database.exec(`
