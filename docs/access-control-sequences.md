@@ -12,11 +12,10 @@ sequenceDiagram
   participant DB as SQLite users
   User->>Web: Enter username and password
   Web->>API: POST credentials over HTTPS
-  API->>API: Validate and scrypt-hash password
-  API->>DB: INSERT username, salt, hash
-  DB-->>API: Created
-  API->>API: Sign 24-hour token
-  API-->>Web: 201 token + public user record
+  API->>DB: SELECT username and bcrypt hash
+  DB-->>API: User record
+  API->>API: Compare password and sign 24-hour JWT
+  API-->>Web: 200 token
   Web->>Web: Store token locally
 ```
 
