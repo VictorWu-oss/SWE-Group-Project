@@ -12,12 +12,6 @@ function createDatabase(databasePath = process.env.DATABASE_PATH || path.join(__
   const database = new DatabaseSync(databasePath);
   database.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
   database.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      password_salt TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
     CREATE TABLE IF NOT EXISTS bathrooms (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,

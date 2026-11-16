@@ -195,13 +195,12 @@ the map UI.
 
 ## Access control (TE6)
 
-The web client supports **Sign up** and **Sign in** through `POST /api/auth/signup`
-and `POST /api/auth/login`. Passwords are never stored or returned in plaintext;
-the API stores salted `scrypt` hashes in SQLite. Successful authentication returns
-an expiring HMAC-signed bearer token, which the web client stores locally and sends
-as an `Authorization` header. `GET /api/auth/me` demonstrates a protected API
-call and returns `401` for missing, invalid, or expired tokens. Set
-`AUTH_TOKEN_SECRET` in production and use HTTPS. See
+The API supports **Sign in** through `POST /api/auth/login`. Passwords are never
+stored or returned in plaintext; the API stores bcrypt hashes in SQLite.
+Successful authentication returns an expiring JWT bearer token, which clients
+send as an `Authorization` header when submitting reviews. Protected requests
+return `401` for missing, invalid, or expired tokens. Set `JWT_SECRET` in
+production and use HTTPS. See
 [`docs/access-control-sequences.md`](docs/access-control-sequences.md).
 
 ## API Contract

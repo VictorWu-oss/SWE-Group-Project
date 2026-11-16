@@ -1,14 +1,14 @@
 # TE6 access-control design
 
-The API uses account credentials only for authenticated actions; public bathroom discovery remains readable. Passwords are salted and hashed with Node's built-in `crypto.scryptSync`. Tokens are HMAC-SHA256 signed, expire after 24 hours, and are stored by the web client in local storage. Set `AUTH_TOKEN_SECRET` to a private deployment secret.
+The API uses account credentials for authenticated actions; public bathroom discovery remains readable. Passwords are stored as bcrypt hashes. Tokens are JWTs signed with `JWT_SECRET`, expire after 24 hours, and are sent in an `Authorization: Bearer` header.
 
-## Sign up
+## Sign in
 
 ```mermaid
 sequenceDiagram
   actor User
   participant Web as Web frontend
-  participant API as Express /api/auth/signup
+  participant API as Express /api/auth/login
   participant DB as SQLite users
   User->>Web: Enter username and password
   Web->>API: POST credentials over HTTPS
