@@ -1,55 +1,26 @@
-# TE6 access-control design
+# TE6 access-control sequence
 
-The API uses account credentials for authenticated actions; public bathroom discovery remains readable. Passwords are stored as bcrypt hashes. Tokens are JWTs signed with `JWT_SECRET`, expire after 24 hours, and are sent in an `Authorization: Bearer` header.
-
-## Sign in
+Passwords use bcrypt; tokens are expiring JWTs signed with `JWT_SECRET`.
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant Web as Web frontend
-  participant API as Express /api/auth/login
-  participant DB as SQLite users
-  User->>Web: Enter username and password
-  Web->>API: POST credentials over HTTPS
-  API->>DB: SELECT username and bcrypt hash
-  DB-->>API: User record
-  API->>API: Compare password and sign 24-hour JWT
-  API-->>Web: 200 token
-  Web->>Web: Store token locally
-```
-
-## Sign in
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant Web as Web frontend
-  participant API as Express /api/auth/login
-  participant DB as SQLite users
-  User->>Web: Enter credentials
-  Web->>API: POST credentials
-  API->>DB: SELECT user by normalized username
-  API->>API: scrypt password and timing-safe comparison
-  API->>API: Sign token on success
-  API-->>Web: 200 token, or 401 generic error
-  Web->>Web: Store token only on success
-```
-
-## Protected request
-
-```mermaid
-sequenceDiagram
-  participant Web as Web frontend
-  participant API as Express middleware
-  participant DB as SQLite
-  Web->>API: Request with Authorization: Bearer token
-  API->>API: Verify signature and expiry
-  alt valid token
-    API->>DB: Perform authenticated operation
-    DB-->>API: Result
-    API-->>Web: 2xx response
-  else missing, forged, or expired token
-    API-->>Web: 401 Authentication is required
+  actor U as **User**
+  participant F as **Frontend**
+  participant A as **Express API**
+  participant D as **SQLite**
+  U->>F: Enter credentials
+  F->>A: **POST /api/auth/login**
+  A->>D: Find user and bcrypt hash
+  D-->>A: User record
+  A->>A: Compare password and sign JWT
+  A-->>F: **200 + token**
+  F->>A: **Protected request + Bearer token**
+  A->>A: Verify signature and expiry
+  alt **Valid token**
+    A->>D: Perform operation
+    D-->>A: Result
+    A-->>F: **2xx success**
+  else **Invalid, missing, or expired**
+    A-->>F: **401 Unauthorized**
   end
 ```
