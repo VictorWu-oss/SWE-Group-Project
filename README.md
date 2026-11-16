@@ -105,6 +105,28 @@ VITE_API_URL=http://localhost:3000/api
 
 ## Start The Mobile App
 
+### Recommended: Expo Go with the hosted API
+
+For a physical phone, the simplest setup uses the deployed HTTPS API and an
+Expo tunnel. This avoids local-network, firewall, and iOS HTTPS-only issues.
+Create `packages/mobile-app/.env` with:
+
+```dotenv
+EXPO_PUBLIC_API_URL=https://toilettracker.onrender.com/api
+```
+
+From the repository root, start Expo with a fresh cache and tunnel:
+
+```bash
+npm run dev:mobile -- --tunnel -c
+```
+
+If Expo reports that port 8081 is already in use, allow it to use port 8082.
+Wait for the QR code, then scan it from Expo Go. Confirm the hosted API first
+from the phone browser at `https://toilettracker.onrender.com/api/health`.
+
+### Local API option
+
 With the API still running, configure the mobile API URL. For the iOS
 simulator, the default `http://localhost:3000/api` works. For the Android
 emulator, use `http://10.0.2.2:3000/api`. For a physical phone, replace the
@@ -142,6 +164,11 @@ restart Expo so it reloads the setting.
 
 ### Mobile Setup Troubleshooting
 
+- **Expo Go takes longer than expected or cannot load the bundle:** restart it
+  with `npm run dev:mobile -- --tunnel -c`. Tunnel mode requires internet but
+  avoids local Metro/firewall routing problems.
+- **Phone browser refuses a local `http://` API address:** use the hosted HTTPS
+  configuration above instead of a local IP address.
 - **"Couldn't load bathrooms" on a phone:** the app is
   probably using `localhost`, which means the phone itself.
   Check that `packages/mobile-app/.env` exists and its IP
