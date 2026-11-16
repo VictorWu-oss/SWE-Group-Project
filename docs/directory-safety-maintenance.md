@@ -74,9 +74,15 @@ and `kind` (`campus_source` or `user_report`). The interface labels user
 reports separately from source information and marks unverified information
 explicitly; it never makes a safety guarantee. No safety
 locations, lighting layer, or trusted safety source is currently configured,
-so no safety notes or proximity filtering are seeded. Issue #44 needs campus
-approval of the source and whether the app should show contextual notes or
-proximity results before that information can be populated.
+so no safety notes are seeded. The agreed feature is source-verified campus
+safety-location information associated with bathrooms. A bathroom receives a
+**Campus safety info** label and matches the discovery filter only when it has
+at least one verified `campus_source` entry; user reports and unverified
+entries do not qualify. This indicates that sourced information is available,
+not that the bathroom or surrounding area is safe. Do not infer well-lit
+conditions or proximity to a safety location from a bathroom's building or
+coordinates. The campus data owner must approve the specific locations,
+authoritative source, and update process before any entries are populated.
 
 ## Maintenance report workflow
 

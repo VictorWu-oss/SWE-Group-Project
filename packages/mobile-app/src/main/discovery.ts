@@ -11,10 +11,15 @@ export type BathroomSort = 'recommended' | 'name' | 'distance' | 'rating';
 export type AccessibilityFilter = 'wheelchairAccessible' | 'grabBars' | 'accessibleSink' | 'stepFreeRoute';
 export type AmenityFilter = 'babyChanging' | 'menstrualProducts' | 'hooks' | 'shelves';
 
+export function hasVerifiedCampusSafetyInfo(bathroom: Bathroom) {
+  return bathroom.safetyInfo.some((entry) => entry.kind === 'campus_source' && entry.verified);
+}
+
 export type DirectoryFilters = {
   restroomTypes: Array<NonNullable<Bathroom['restroomType']>>;
   accessibility: AccessibilityFilter[];
   amenities: AmenityFilter[];
+  verifiedCampusSafetyInfo: boolean;
   sort: BathroomSort;
 };
 
@@ -22,6 +27,7 @@ const noDirectoryFilters: DirectoryFilters = {
   restroomTypes: [],
   accessibility: [],
   amenities: [],
+  verifiedCampusSafetyInfo: false,
   sort: 'recommended',
 };
 
@@ -79,6 +85,9 @@ export function filterAndSortBathrooms(
     .filter((bathroom) => directoryFilters.amenities.every((field) => (
       bathroom.directoryVerified && bathroom.amenities?.[field] === true
     )))
+    .filter((bathroom) => (
+      !directoryFilters.verifiedCampusSafetyInfo || hasVerifiedCampusSafetyInfo(bathroom)
+    ))
     .map((bathroom) => ({
       bathroom,
       distanceKilometers: location && bathroom.latitude !== null && bathroom.longitude !== null

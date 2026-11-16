@@ -16,6 +16,7 @@ import type { Bathroom, Coordinates } from '../main/types';
 import {
   filterAndSortBathrooms,
   formatDistance,
+  hasVerifiedCampusSafetyInfo,
   type AccessibilityFilter,
   type AmenityFilter,
   type BathroomSort,
@@ -73,6 +74,7 @@ export function CampusMapScreen({ bathrooms }: Props) {
   const [restroomTypes, setRestroomTypes] = useState<Array<'single-stall' | 'multi-stall'>>([]);
   const [accessibility, setAccessibility] = useState<AccessibilityFilter[]>([]);
   const [amenities, setAmenities] = useState<AmenityFilter[]>([]);
+  const [verifiedCampusSafetyInfo, setVerifiedCampusSafetyInfo] = useState(false);
   const [sort, setSort] = useState<BathroomSort>('recommended');
   const [walkingRoute, setWalkingRoute] = useState<WalkingRoute | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -119,9 +121,20 @@ export function CampusMapScreen({ bathrooms }: Props) {
       location,
       cleanlinessFilter,
       busynessFilter,
-      { restroomTypes, accessibility, amenities, sort },
+      { restroomTypes, accessibility, amenities, verifiedCampusSafetyInfo, sort },
     ),
-    [accessibility, amenities, bathrooms, busynessFilter, cleanlinessFilter, location, restroomTypes, search, sort],
+    [
+      accessibility,
+      amenities,
+      bathrooms,
+      busynessFilter,
+      cleanlinessFilter,
+      location,
+      restroomTypes,
+      search,
+      sort,
+      verifiedCampusSafetyInfo,
+    ],
   );
   const visibleBathrooms = useMemo(
     () => orderedBathrooms.map(({ bathroom }) => bathroom),
@@ -137,6 +150,7 @@ export function CampusMapScreen({ bathrooms }: Props) {
     || restroomTypes.length > 0
     || accessibility.length > 0
     || amenities.length > 0
+    || verifiedCampusSafetyInfo
     || sort !== 'recommended';
   const bathroomSections = useMemo(() => {
     const byBuilding = new Map<string, typeof orderedBathrooms>();
@@ -157,6 +171,7 @@ export function CampusMapScreen({ bathrooms }: Props) {
     setRestroomTypes([]);
     setAccessibility([]);
     setAmenities([]);
+    setVerifiedCampusSafetyInfo(false);
     setSort('recommended');
   }
 
@@ -477,6 +492,20 @@ export function CampusMapScreen({ bathrooms }: Props) {
               </Text>
             </Pressable>
           ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: verifiedCampusSafetyInfo }}
+            onPress={() => setVerifiedCampusSafetyInfo((current) => !current)}
+            style={[styles.filterChip, verifiedCampusSafetyInfo && styles.filterSelected]}
+          >
+            <Text style={[
+              styles.filterText,
+              verifiedCampusSafetyInfo && styles.filterTextSelected,
+            ]}
+            >
+              Campus safety info
+            </Text>
+          </Pressable>
           {hasActiveFilters ? (
             <Pressable
               accessibilityRole="button"
@@ -510,11 +539,12 @@ export function CampusMapScreen({ bathrooms }: Props) {
             )}
             renderItem={({ item }) => {
               const selected = item.bathroom.id === selectedBathroomId;
+              const safetyInfoAvailable = hasVerifiedCampusSafetyInfo(item.bathroom);
               return (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  accessibilityLabel={`Open ${item.bathroom.name}, ${item.bathroom.building}`}
+                  accessibilityLabel={`Open ${item.bathroom.name}, ${item.bathroom.building}${safetyInfoAvailable ? ', verified campus safety information available' : ''}`}
                   onPress={() => selectBathroom(item.bathroom.id)}
                   style={({ pressed }) => [
                     styles.bathroomRow,
@@ -535,6 +565,9 @@ export function CampusMapScreen({ bathrooms }: Props) {
                     <Text style={item.bathroom.directoryVerified ? styles.verifiedText : styles.unverifiedText}>
                       {item.bathroom.directoryVerified ? 'Verified directory' : 'Demo / unverified'}
                     </Text>
+                    {safetyInfoAvailable ? (
+                      <Text style={styles.safetyAvailableText}>Campus safety info</Text>
+                    ) : null}
                   </View>
                   <View style={styles.rowMeta}>
                     <View style={styles.ratingLine}>
@@ -749,6 +782,7 @@ const styles = StyleSheet.create({
   buildingName: { fontSize: 13, color: '#667085' },
   verifiedText: { fontSize: 11, color: '#126B4B', fontWeight: '600' },
   unverifiedText: { fontSize: 11, color: '#8D5812', fontWeight: '600' },
+  safetyAvailableText: { fontSize: 11, color: '#225CC2', fontWeight: '700' },
   rowMeta: { alignItems: 'flex-end', gap: 3 },
   ratingLine: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   ratingValue: { color: '#475467', fontSize: 13, fontWeight: '600' },

@@ -155,8 +155,9 @@ See the README for device-specific `EXPO_PUBLIC_API_URL` setup.
 - Checked-in bathroom records and coordinates are **demo/unverified**.
 - No approved campus data owner/source for opening hours, accessibility,
   amenities, or safety context has been configured; these values remain
-  unknown. Issue #44's safety-location proximity view needs an approved
-  source/decision before it can truthfully be populated.
+  unknown. The safety-information label and filter are implemented, but they
+  have no matching records until a campus-approved safety-location source is
+  supplied. The filter does not claim proximity or that an area is safe.
 - Directory verification and report management are backend-token protected,
   but there is no staff account/role or admin user interface.
 - The official [Cal Poly Interactive Map](https://maps.calpoly.edu/) has a
