@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#fff"/>
+  <style>text{font-family:Arial,sans-serif;font-weight:700;fill:#17212f}.title{font-size:28px;fill:#173b78}.label{font-size:18px}.small{font-size:15px}.line{stroke:#3478f6;stroke-width:3}.dash{stroke:#7c8da6;stroke-width:2;stroke-dasharray:8 8}.box{fill:#eef4ff;stroke:#3478f6;stroke-width:2}.success{fill:#e9f8f1;stroke:#16865a;stroke-width:2}.error{fill:#fff0f0;stroke:#c0392b;stroke-width:2}</style>
+  <text x="600" y="42" text-anchor="middle" class="title">TE6 Access Control</text>
+  <rect x="70" y="70" width="180" height="48" rx="10" class="box"/><text x="160" y="101" text-anchor="middle" class="label">User</text>
+  <rect x="330" y="70" width="210" height="48" rx="10" class="box"/><text x="435" y="101" text-anchor="middle" class="label">Frontend</text>
+  <rect x="640" y="70" width="220" height="48" rx="10" class="box"/><text x="750" y="101" text-anchor="middle" class="label">Express API</text>
+  <rect x="960" y="70" width="170" height="48" rx="10" class="box"/><text x="1045" y="101" text-anchor="middle" class="label">SQLite</text>
+  <path d="M160 118V690M435 118V690M750 118V690M1045 118V690" class="dash"/>
+  <g class="small">
+    <line x1="160" y1="165" x2="435" y2="165" class="line"/><path d="m425 158 10 7-10 7" fill="none" class="line"/><text x="297" y="151" text-anchor="middle">Enter credentials</text>
+    <line x1="435" y1="225" x2="750" y2="225" class="line"/><path d="m740 218 10 7-10 7" fill="none" class="line"/><text x="592" y="211" text-anchor="middle">POST /api/auth/login</text>
+    <line x1="750" y1="285" x2="1045" y2="285" class="line"/><path d="m1035 278 10 7-10 7" fill="none" class="line"/><text x="897" y="271" text-anchor="middle">Find user + bcrypt hash</text>
+    <line x1="1045" y1="345" x2="750" y2="345" class="line"/><path d="m760 338-10 7 10 7" fill="none" class="line"/><text x="897" y="331" text-anchor="middle">User record</text>
+    <line x1="750" y1="405" x2="435" y2="405" class="line"/><path d="m445 398-10 7 10 7" fill="none" class="line"/><text x="592" y="391" text-anchor="middle">200 + signed JWT</text>
+    <line x1="435" y1="465" x2="750" y2="465" class="line"/><path d="m740 458 10 7-10 7" fill="none" class="line"/><text x="592" y="451" text-anchor="middle">Protected request + Bearer token</text>
+    <rect x="535" y="510" width="430" height="58" rx="10" class="success"/><text x="750" y="545" text-anchor="middle">Verify signature and expiry</text>
+    <line x1="750" y1="600" x2="1045" y2="600" class="line"/><path d="m1035 593 10 7-10 7" fill="none" class="line"/><text x="897" y="586" text-anchor="middle">Valid: perform operation</text>
+    <line x1="750" y1="660" x2="435" y2="660" class="line"/><path d="m445 653-10 7 10 7" fill="none" class="line"/><text x="592" y="646" text-anchor="middle">2xx success</text>
+    <rect x="70" y="700" width="1060" height="42" rx="10" class="error"/><text x="600" y="727" text-anchor="middle">Invalid, missing, or expired token → 401 Unauthorized</text>
+  </g>
+</svg>
