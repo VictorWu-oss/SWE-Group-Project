@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import type { Bathroom, Coordinates } from '../main/types';
 import {
   filterAndSortBathrooms,
@@ -62,6 +63,7 @@ function restroomRoomLabel(name: string) {
 }
 
 export function CampusMapScreen({ bathrooms }: Props) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
@@ -159,9 +161,10 @@ export function CampusMapScreen({ bathrooms }: Props) {
   }
 
   function selectBathroom(id: string) {
-    setSelectedBathroomId(id);
-    setWalkingRoute(null);
-    setRouteMessage('');
+    router.push({
+      pathname: '/bathroom/[id]',
+      params: { id },
+    });
   }
 
   async function showRouteInApp() {

@@ -11,9 +11,22 @@ function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [token, setToken] = useState(() => window.localStorage.getItem('toilettracker_token') || '');
+  const [authMode, setAuthMode] = useState('login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  function authHeaders(headers = {}) { return token ? { ...headers, Authorization: `Bearer ${token}` } : headers; }
+  async function submitAuth(event) {
+    event.preventDefault(); setAuthMessage('');
+    const response = await fetch(`${API_URL}/auth/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const data = await response.json();
+    if (!response.ok) { setAuthMessage(data.error || 'Authentication failed.'); return; }
+    window.localStorage.setItem('toilettracker_token', data.token); setToken(data.token); setPassword(''); setAuthMessage(`Signed ${authMode === 'login' ? 'in' : 'up'} as ${data.user.username}.`);
+  }
 
   useEffect(() => {
-    fetch(`${API_URL}/bathrooms?installationId=web-browser`).then((response) => {
+    fetch(`${API_URL}/bathrooms?installationId=web-browser`, { headers: authHeaders() }).then((response) => {
       if (!response.ok) throw new Error('Unable to load bathrooms.');
       return response.json();
     }).then((data) => setBathrooms(data.bathrooms || [])).catch(() => setError('Bathrooms could not be loaded. Check that the API is running.'));
@@ -34,6 +47,7 @@ function App() {
 
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">TOILETTRACKER</p><h1>Find a bathroom</h1></div><button className="location-button" onClick={requestLocation} disabled={locationState === 'loading'}>{locationState === 'loading' ? 'Locating…' : location ? 'Location enabled' : 'Use my location'}</button></header>
+    <form className="auth-panel" onSubmit={submitAuth} aria-label="Account access"><strong>{authMode === 'login' ? 'Sign in' : 'Create account'}</strong><input aria-label="Username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required minLength="3" /><input aria-label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" required minLength="8" /><button type="submit">{authMode === 'login' ? 'Sign in' : 'Sign up'}</button><button type="button" className="link-button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}>{authMode === 'login' ? 'Need an account?' : 'Already have an account?'}</button>{authMessage ? <span role="status">{authMessage}</span> : null}</form>
     {locationState === 'denied' || locationState === 'unavailable' ? <p className="notice">Location is optional. You can still browse the map and list; results are sorted by name.</p> : null}
     {error ? <p className="error">{error}</p> : null}
     <section className="workspace"><div className="map-card" aria-label="Bathroom map"><div className="map-grid">

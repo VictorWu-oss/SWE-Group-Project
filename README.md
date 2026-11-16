@@ -46,7 +46,7 @@ assumed absent or open.
 
 ## Start The API
 
-In one terminal at the repository root:
+Open a terminal at the repository root and start the API:
 
 ```bash
 npm run dev:api
@@ -80,10 +80,41 @@ token is a deployment-level gate, not a staff identity/role system. Setup,
 verification workflows, hours semantics, and report statuses are documented
 in [`docs/directory-safety-maintenance.md`](docs/directory-safety-maintenance.md).
 
+## Start The Web Demo
+
+With the API still running, open a second terminal at the repository root:
+
+```bash
+npm run dev --workspace react-frontend
+```
+
+Open the Vite web app in a browser:
+
+```text
+http://localhost:5173
+```
+
+The web app uses `http://localhost:3000/api` by default. To point it to a
+different API, create `packages/react-frontend/.env`:
+
+```dotenv
+VITE_API_URL=http://localhost:3000/api
+```
+
 ## Start The Mobile App
 
-For the iOS simulator, the default API URL `http://localhost:3000/api` works.
-For a physical phone, find the computer's Wi-Fi IP address (on macOS):
+With the API still running, configure the mobile API URL. For the iOS
+simulator, the default `http://localhost:3000/api` works. For the Android
+emulator, use `http://10.0.2.2:3000/api`. For a physical phone, replace the
+example address with the computer's Wi-Fi IP address.
+
+On Windows, use this command to find the Wi-Fi IPv4 address:
+
+```bash
+ipconfig
+```
+
+On macOS, use:
 
 ```bash
 ipconfig getifaddr en0
@@ -105,8 +136,7 @@ npm run dev:mobile -- --lan
 ```
 
 Open the QR code with Expo Go on your phone. If you change the `.env` file,
-restart Expo so it reloads the setting. For the Android emulator, use
-`EXPO_PUBLIC_API_URL=http://10.0.2.2:3000/api` instead.
+restart Expo so it reloads the setting.
 
 ### Mobile Setup Troubleshooting
 
@@ -158,6 +188,17 @@ hours source has yet been approved or imported. Map tiles and Leaflet are
 loaded from OpenStreetMap and unpkg, so map display requires an internet
 connection. No map credential is required. Keep OpenStreetMap attribution
 visible when changing the map UI.
+
+## Access control (TE6)
+
+The web client supports **Sign up** and **Sign in** through `POST /api/auth/signup`
+and `POST /api/auth/login`. Passwords are never stored or returned in plaintext;
+the API stores salted `scrypt` hashes in SQLite. Successful authentication returns
+an expiring HMAC-signed bearer token, which the web client stores locally and sends
+as an `Authorization` header. `GET /api/auth/me` demonstrates a protected API
+call and returns `401` for missing, invalid, or expired tokens. Set
+`AUTH_TOKEN_SECRET` in production and use HTTPS. See
+[`docs/access-control-sequences.md`](docs/access-control-sequences.md).
 
 ## API Contract
 

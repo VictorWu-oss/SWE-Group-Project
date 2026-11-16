@@ -58,22 +58,26 @@ details, and community reports.
 
 ## 4. Architecture and contract
 
-```text
-Expo Router / React Native
-  ├─ Discovery route: search, rating filters, map + list
-  ├─ Bathroom route: hours, features, directions, reports
-  ├─ Rating and maintenance-report forms
-  ├─ Expo Location: opt-in current position
-  └─ Leaflet in WebView: OpenStreetMap tiles + marker bridge
-             │ EXPO_PUBLIC_API_URL
-             ▼
-Express API ─ SQLite
-  ├─ GET /api/bathrooms[?search=...]
-  ├─ GET /api/bathrooms/:id
-  └─ POST /api/bathrooms/:id/reviews
-  ├─ POST /api/bathrooms/:id/maintenance-reports
-  └─ Admin-only directory/status update routes
+```mermaid
+%% Source: docs/high-level-design.mmd
+flowchart LR
+    Mobile["📱 Expo / React Native<br/>Expo Router<br/>Search · Map · Ratings"] -->|Request bathroom data| API["⚙️ Express API<br/>Routes · Validation · Errors"]
+    Web["🌐 Vite / React Web App<br/>Search · Details · Ratings"] -->|Fetch API data| API
+    Mobile -->|Request location| Location["📍 Expo Location<br/>Opt-in position"]
+    Mobile -->|Render map markers| Maps["🗺️ OpenStreetMap / Leaflet<br/>Tiles · Walking Routes"]
+    API -->|Route request| Discovery["🔎 Discovery Services<br/>Search · Filters · Sorting"]
+    API -->|Submit or read reviews| Reviews["⭐ Review Services<br/>Validation · Aggregates"]
+    API -->|Read directory data| Directory["📚 Directory Services<br/>Hours · Accessibility · Maintenance"]
+    Discovery -->|Search and filter records| DB[("🗄️ SQLite Database<br/>Bathrooms · Reviews · Reports")]
+    Reviews -->|Read/write reviews| DB
+    Directory -->|Read/write verified facts| DB
+    API -.->|400 / 404 / 409 errors| Error["⚠️ Client error message"]
+    Reviews -.->|One review per bathroom per LA day| Rule["🔒 SQLite uniqueness rule"]
+    Discovery -.->|No location| Fallback["↕️ Alphabetical fallback"]
+    Discovery -.->|Location available| Nearby["📏 Distance ordering"]
 ```
+
+The editable source is [`high-level-design.mmd`](high-level-design.mmd).
 
 - The mobile client validates API responses at runtime.
 - The server validates review fields and returns explicit `400`, `404`, and

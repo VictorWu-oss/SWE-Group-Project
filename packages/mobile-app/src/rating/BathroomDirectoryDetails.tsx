@@ -133,7 +133,7 @@ export function BathroomDirectoryDetails({
             <Text style={styles.directionsText}>Get directions</Text>
           </Pressable>
           <Text style={styles.sectionNote}>
-            Your navigation app will use your current location when available; otherwise choose a starting point there.
+            ToiletTracker will create an in-app walking route using your current location.
           </Text>
           {directionError ? <Text accessibilityRole="alert" style={styles.errorText}>{directionError}</Text> : null}
         </>

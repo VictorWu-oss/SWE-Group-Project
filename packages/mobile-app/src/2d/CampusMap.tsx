@@ -129,6 +129,8 @@ window.onerror=()=>window.ReactNativeWebView.postMessage(JSON.stringify({type:'e
 const map=L.map('map',{zoomControl:false,attributionControl:true}).setView(center,selectedId?18:16);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
+const routePane=map.createPane('routePane');
+routePane.style.zIndex=450;
 bathrooms.forEach((bathroom)=>{
   const active=bathroom.id===selectedId;
   const icon=L.divIcon({className:'',html:'<div class="toilet-pin '+(active?'active':'')+'">&#128701;</div>',iconSize:[38,38],iconAnchor:[19,19]});
@@ -140,7 +142,8 @@ if(userLocation){L.marker([userLocation.latitude,userLocation.longitude],{icon:L
 const destination=bathrooms.find((bathroom)=>bathroom.id===selectedId);
 if(routeCoordinates&&routeCoordinates.length>1){
   const route=routeCoordinates.map((point)=>[point.latitude,point.longitude]);
-  L.polyline(route,{color:'#3478f6',weight:5,opacity:0.9}).addTo(map);
+  L.polyline(route,{pane:'routePane',color:'#ffffff',weight:9,opacity:0.9,interactive:false}).addTo(map);
+  L.polyline(route,{pane:'routePane',color:'#1677ff',weight:5,opacity:1,interactive:false}).addTo(map);
   map.fitBounds(route,{padding:[38,38],maxZoom:16});
 }
 </script></body></html>`;

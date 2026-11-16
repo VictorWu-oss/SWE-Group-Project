@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,11 +9,18 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
-import { ApiError, fetchBathroom, submitBathroomReview } from '../main/api';
-import type { Bathroom, Busyness, CleanlinessRating } from '../main/types';
+import * as Location from 'expo-location';
+import {
+  ApiError,
+  fetchBathroom,
+  fetchWalkingRoute,
+  submitBathroomReview,
+  type WalkingRoute,
+} from '../main/api';
+import type { Bathroom, Busyness, CleanlinessRating, Coordinates } from '../main/types';
 import { BathroomDirectoryDetails } from './BathroomDirectoryDetails';
 import { MaintenanceReportsSection } from './MaintenanceReportsSection';
+import { CampusMap, getBathroomMapLocation } from '../2d/CampusMap';
 
 type Props = {
   bathroom: Bathroom;
@@ -45,6 +53,10 @@ export function BathroomDetailsScreen({
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [directionError, setDirectionError] = useState('');
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeOrigin, setRouteOrigin] = useState<Coordinates | null>(null);
+  const [walkingRoute, setWalkingRoute] = useState<WalkingRoute | null>(null);
+  const [routeVisible, setRouteVisible] = useState(false);
 
   async function handleSubmit() {
     if (cleanliness === null || busyness === null || submitting) return;
@@ -84,30 +96,94 @@ export function BathroomDetailsScreen({
   const reportedAt = formatReportedAt(bathroom.busynessReportedAt);
 
   async function openDirections() {
-    if (
-      bathroom.latitude === null
-      || bathroom.longitude === null
-      || !Number.isFinite(bathroom.latitude)
-      || !Number.isFinite(bathroom.longitude)
-    ) {
-      setDirectionError('Directions are unavailable because this bathroom has no verified destination coordinates.');
+    const destination = getBathroomMapLocation(bathroom);
+    if (!destination) {
+      setDirectionError('Directions are unavailable because this building has no destination coordinates yet.');
       return;
     }
     setDirectionError('');
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-      `${bathroom.latitude},${bathroom.longitude}`,
-    )}`;
+    setRouteLoading(true);
     try {
-      await Linking.openURL(url);
-    } catch (openError) {
-      setDirectionError(openError instanceof Error
-        ? `A maps app could not be opened. ${openError.message}`
-        : 'A maps app could not be opened. Copy the destination from the bathroom map instead.');
+      let permission = await Location.getForegroundPermissionsAsync();
+      if (permission.status !== 'granted' && permission.canAskAgain) {
+        permission = await Location.requestForegroundPermissionsAsync();
+      }
+      if (permission.status !== 'granted') {
+        setDirectionError(permission.canAskAgain
+          ? 'Location access is required to create a walking route from your current position.'
+          : 'Location access is turned off. Enable Location for Expo Go in your device settings, then try again.');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const origin = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      const route = await fetchWalkingRoute(origin, destination);
+      setRouteOrigin(origin);
+      setWalkingRoute(route);
+      setRouteVisible(true);
+    } catch {
+      setDirectionError('A walking route could not be found right now. Please try again.');
+    } finally {
+      setRouteLoading(false);
     }
+  }
+
+  function cancelRoute() {
+    setRouteVisible(false);
+    setWalkingRoute(null);
+    setRouteOrigin(null);
   }
 
   return (
     <View style={styles.screen}>
+      <Modal
+        visible={routeVisible && walkingRoute !== null && routeOrigin !== null}
+        animationType="slide"
+        onRequestClose={cancelRoute}
+      >
+        <View style={styles.routeModal}>
+          <View style={styles.routeModalHeader}>
+            <View>
+              <Text style={styles.routeModalTitle}>Walking route</Text>
+              {walkingRoute ? (
+                <Text style={styles.routeModalSubtitle}>
+                  {Math.round(walkingRoute.distanceMeters)} m · about {Math.max(1, Math.round(walkingRoute.durationSeconds / 60))} min walk
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel walking route"
+              onPress={cancelRoute}
+              style={({ pressed }) => [styles.cancelRouteButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.cancelRouteText}>Cancel route</Text>
+            </Pressable>
+          </View>
+          {walkingRoute && routeOrigin ? (
+            <View style={styles.routeFullMap}>
+              <CampusMap
+                bathrooms={[bathroom]}
+                location={routeOrigin}
+                selectedBathroomId={bathroom.id}
+                routeCoordinates={walkingRoute.coordinates}
+                onSelectBathroom={() => {}}
+              />
+            </View>
+          ) : null}
+          <ScrollView contentContainerStyle={styles.routeInstructions}>
+            {walkingRoute?.instructions.map((instruction, index) => (
+              <Text key={`${instruction}-${index}`} style={styles.routeInstruction}>
+                {index + 1}. {instruction}
+              </Text>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
       <View style={styles.navigation}>
         <Pressable
           accessibilityRole="button"
@@ -138,6 +214,7 @@ export function BathroomDetailsScreen({
           directionError={directionError}
           onOpenDirections={() => { void openDirections(); }}
         />
+        {routeLoading ? <ActivityIndicator size="small" color="#3478F6" style={styles.routeLoading} /> : null}
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCell}>
@@ -356,4 +433,30 @@ const styles = StyleSheet.create({
   submitDisabled: { opacity: 0.48 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   privacyNote: { color: '#667085', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 15 },
+  routeLoading: { marginTop: 14 },
+  routeModal: { flex: 1, backgroundColor: '#fff' },
+  routeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 58,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E4E7EC',
+  },
+  routeModalTitle: { color: '#17212F', fontSize: 20, fontWeight: '700' },
+  routeModalSubtitle: { color: '#667085', fontSize: 14, marginTop: 3 },
+  cancelRouteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D0D5DD',
+    borderRadius: 9,
+    backgroundColor: '#fff',
+  },
+  cancelRouteText: { color: '#475467', fontSize: 14, fontWeight: '700' },
+  routeFullMap: { flex: 1, minHeight: 320 },
+  routeInstructions: { padding: 18, paddingBottom: 28 },
+  routeInstruction: { color: '#475467', fontSize: 13, lineHeight: 19, marginTop: 6 },
 });
