@@ -62,6 +62,25 @@ source has been imported.
 
 ## Routes
 
+### `POST /auth/signup`
+
+Required JSON request:
+
+```json
+{ "username": "new.user", "password": "a-secure-password" }
+```
+
+Usernames must match `^[A-Za-z0-9._-]{3,32}$`; passwords must contain 8–128
+characters. Passwords are bcrypt-hashed before they are stored, and neither a
+password nor a hash is returned to the client.
+
+| Status | Response |
+|---|---|
+| `201` | `{ "token": "<signed JWT>" }` |
+| `400` | `{ "error": "<credential validation message>" }` |
+| `409` | `{ "error": "That username is already registered." }` |
+| `503` | `{ "error": "Sign-in is not configured." }` when `JWT_SECRET` is unset |
+
 ### `GET /bathrooms?installationId=<id>&search=<text>`
 
 Both query parameters are optional. `installationId` controls

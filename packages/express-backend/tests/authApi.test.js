@@ -24,7 +24,7 @@ async function withApi(callback) {
   const server = createApiApp(database, { tokenSecret: TOKEN_SECRET }).listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   try {
-    await callback(`http://127.0.0.1:${server.address().port}/api`);
+    await callback(`http://127.0.0.1:${server.address().port}/api`, database);
   } finally {
     await new Promise((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
@@ -35,6 +35,14 @@ async function withApi(callback) {
 
 function login(apiUrl, body) {
   return fetch(`${apiUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function signup(apiUrl, body) {
+  return fetch(`${apiUrl}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -61,6 +69,56 @@ test('sign-in with valid credentials returns 200 and a token', async () => {
     assert.equal(response.status, 200);
     const { token } = await response.json();
     assert.equal(jwt.verify(token, TOKEN_SECRET).username, 'lia');
+  });
+});
+
+test('sign-up creates a bcrypt password hash and returns a JWT', async () => {
+  await withApi(async (apiUrl, database) => {
+    const password = 'secure-password';
+    const response = await signup(apiUrl, { username: 'new.user', password });
+
+    assert.equal(response.status, 201);
+    const { token } = await response.json();
+    assert.equal(jwt.verify(token, TOKEN_SECRET).username, 'new.user');
+
+    const storedUser = database.prepare(
+      'SELECT username, password_hash FROM users WHERE username = ?',
+    ).get('new.user');
+    assert.deepEqual(Object.keys(storedUser).sort(), ['password_hash', 'username']);
+    assert.notEqual(storedUser.password_hash, password);
+    assert.match(storedUser.password_hash, /^\$2[aby]\$/);
+    assert.equal(await bcrypt.compare(password, storedUser.password_hash), true);
+  });
+});
+
+test('sign-up returns 400 with clear validation errors for invalid credentials', async () => {
+  await withApi(async (apiUrl) => {
+    const cases = [
+      { body: {}, error: 'Username must be 3 to 32 letters, numbers, dots, underscores, or hyphens.' },
+      { body: { username: 'bad name', password: 'secure-password' }, error: 'Username must be 3 to 32 letters, numbers, dots, underscores, or hyphens.' },
+      { body: { username: 'valid-user', password: 'short' }, error: 'Password must contain between 8 and 128 characters.' },
+    ];
+    for (const { body, error } of cases) {
+      const response = await signup(apiUrl, body);
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), { error });
+    }
+  });
+});
+
+test('sign-up rejects a duplicate username without adding another user', async () => {
+  await withApi(async (apiUrl, database) => {
+    assert.equal((await signup(apiUrl, {
+      username: 'duplicate-user', password: 'secure-password',
+    })).status, 201);
+
+    const duplicate = await signup(apiUrl, {
+      username: 'duplicate-user', password: 'another-password',
+    });
+    assert.equal(duplicate.status, 409);
+    assert.deepEqual(await duplicate.json(), { error: 'That username is already registered.' });
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM users WHERE username = ?')
+      .get('duplicate-user').count, 1);
   });
 });
 

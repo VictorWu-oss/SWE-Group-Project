@@ -222,12 +222,16 @@ the map UI.
 
 ## Access control (TE6)
 
-The API supports **Sign in** through `POST /api/auth/login`. Passwords are never
-stored or returned in plaintext; the API stores bcrypt hashes in SQLite.
-Successful authentication returns an expiring JWT bearer token, which clients
-send as an `Authorization` header when submitting reviews. Protected requests
-return `401` for missing, invalid, or expired tokens. Set `JWT_SECRET` in
-production and use HTTPS. See
+The API supports **Sign up** through `POST /api/auth/signup` and **Sign in**
+through `POST /api/auth/login`. A sign-up username must be 3–32 letters,
+numbers, dots, underscores, or hyphens; passwords must be 8–128 characters.
+Passwords are never stored or returned in plaintext; the API stores bcrypt
+hashes in SQLite. Successful authentication returns an expiring JWT bearer
+token, which clients send as an `Authorization` header when submitting reviews.
+Set a strong `JWT_SECRET` in the backend `.env` file (see
+`packages/express-backend/.env.example`), keep it out of source control, and
+use HTTPS in production. Protected requests return `401` for missing, invalid,
+or expired tokens. See
 [`docs/access-control-sequences.md`](docs/access-control-sequences.md).
 
 ## API Contract
