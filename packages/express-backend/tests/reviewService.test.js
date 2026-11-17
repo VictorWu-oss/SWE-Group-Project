@@ -5,6 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { createDatabase, seedBathrooms } = require('../src/db/database');
 const {
+  BathroomNotFoundError,
   ReviewConflictError,
   getBathroomSummary,
   getLosAngelesDay,
@@ -29,6 +30,35 @@ test('uses the America/Los_Angeles calendar day across UTC midnight', () => {
   assert.equal(getLosAngelesDay(new Date('2026-01-01T08:01:00.000Z')), '2026-01-01');
 });
 
+test('rejects a review whose cleanliness is outside the accepted range', () => {
+  const database = makeDatabase();
+
+  assert.throws(() => submitReview(database, {
+    bathroomId: 'demo-bathroom',
+    installationId: 'installation-12345678',
+    cleanliness: 6,
+    busyness: 'Low',
+  }), (error) => error.statusCode === 400
+    && error.message === 'Cleanliness must be a whole number from 1 to 5.');
+
+  database.close();
+});
+
+test('rejects a review for a bathroom that does not exist', () => {
+  const database = makeDatabase();
+
+  assert.throws(() => submitReview(database, {
+    bathroomId: 'missing-bathroom',
+    installationId: 'installation-12345678',
+    cleanliness: 3,
+    busyness: 'Low',
+  }), (error) => error instanceof BathroomNotFoundError
+    && error.statusCode === 404
+    && error.message === 'Bathroom not found.');
+
+  database.close();
+});
+
 test('persists a review and rejects another review on the same LA day', () => {
   const database = makeDatabase();
   const now = new Date('2026-06-15T19:00:00.000Z');
@@ -49,7 +79,9 @@ test('persists a review and rejects another review on the same LA day', () => {
     installationId: 'installation-12345678',
     cleanliness: 2,
     busyness: 'Low',
-  }, new Date('2026-06-16T06:59:00.000Z')), ReviewConflictError);
+  }, new Date('2026-06-16T06:59:00.000Z')), (error) => error instanceof ReviewConflictError
+    && error.statusCode === 409
+    && error.message === "You've already submitted today's review for this bathroom.");
   assert.equal(getBathroomSummary(database, 'demo-bathroom', '', now).reviewCount, 1);
   database.close();
 });
