@@ -303,9 +303,11 @@ TypeScript check.
 7. Tap a marker and a list row; verify each opens the matching bathroom
    details. Return to the map and verify the selected bathroom remains
    highlighted when it is still in the search results.
-8. Submit a valid cleanliness and busyness report. Verify the updated average,
-   count, busyness, timestamp, and reviewed-today state. Submit again and
-   verify the duplicate-report response is handled.
+8. Open a bathroom and sign in or create an account before submitting a valid
+   cleanliness and busyness report. Verify the updated average, count,
+   busyness, timestamp, and reviewed-today state. Submit again and verify the
+   duplicate-report response is handled. Disconnect the API before submitting
+   to verify that the app displays a readable network error.
 9. Submit a maintenance report; verify it appears with `Submitted` status.
    Management status changes require the private backend admin token.
 10. Disconnect the API and reload; verify the app presents an actionable error

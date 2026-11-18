@@ -12,11 +12,12 @@ const { createDatabase, seedBathrooms } = require('../../express-backend/src/db/
 
 const installationId = 'installation-contract-test';
 const adminToken = 'contract-test-token';
+const tokenSecret = 'contract-test-jwt-secret';
 
 async function withApi(callback) {
   const database = createDatabase(':memory:');
   seedBathrooms(database);
-  const server = createApiApp(database, { adminToken, adminName: 'Contract test' })
+  const server = createApiApp(database, { adminToken, adminName: 'Contract test', tokenSecret })
     .listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   const apiUrl = `http://127.0.0.1:${server.address().port}/api`;
@@ -84,8 +85,16 @@ test('details, review submission, and verified directory data parse with the mob
     assert.equal(details.status, 200);
     assert.equal(parseBathroom(details.body.bathroom).id, id);
 
+    const signup = await requestJson(`${apiUrl}/auth/signup`, {
+      method: 'POST',
+      body: { username: 'contract-user', password: 'contract-password' },
+    });
+    assert.equal(signup.status, 201);
+    assert.equal(typeof signup.body.token, 'string');
+
     const review = await requestJson(`${apiUrl}/bathrooms/${id}/reviews`, {
       method: 'POST',
+      token: signup.body.token,
       body: { installationId, cleanliness: 5, busyness: 'Low' },
     });
     assert.equal(review.status, 201);
@@ -96,6 +105,7 @@ test('details, review submission, and verified directory data parse with the mob
 
     const duplicate = await requestJson(`${apiUrl}/bathrooms/${id}/reviews`, {
       method: 'POST',
+      token: signup.body.token,
       body: { installationId, cleanliness: 4, busyness: 'High' },
     });
     assert.equal(duplicate.status, 409);

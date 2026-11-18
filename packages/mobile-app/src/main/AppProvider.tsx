@@ -7,15 +7,18 @@ import { ApiError } from './apiErrors';
 import type { Bathroom } from './types';
 
 const INSTALLATION_KEY = 'toilet-tracker-installation-id';
+const ACCESS_TOKEN_KEY = 'toilet-tracker-access-token';
 
 type AppData = {
   installationId: string | null;
+  accessToken: string | null;
   bathrooms: Bathroom[];
   loading: boolean;
   error: string | null;
   errorCode: string | null;
   reloadBathrooms: () => Promise<void>;
   updateBathroom: (bathroom: Bathroom) => void;
+  saveAccessToken: (token: string) => Promise<void>;
 };
 
 const AppDataContext = createContext<AppData | null>(null);
@@ -38,8 +41,22 @@ async function getInstallationId() {
   return id;
 }
 
+async function getAccessToken() {
+  if (Platform.OS === 'web') return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+}
+
+async function persistAccessToken(token: string) {
+  if (Platform.OS === 'web') {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    return;
+  }
+  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [installationId, setInstallationId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [bathrooms, setBathrooms] = useState<Bathroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +83,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setError(null);
     setErrorCode(null);
     try {
-      const id = await getInstallationId();
+      const [id, token] = await Promise.all([getInstallationId(), getAccessToken()]);
       setInstallationId(id);
+      setAccessToken(token);
       await loadBathrooms(id);
     } catch (loadError) {
       setLoading(false);
@@ -88,6 +106,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )));
   }
 
+  async function saveAccessToken(token: string) {
+    await persistAccessToken(token);
+    setAccessToken(token);
+  }
+
   async function reloadBathrooms() {
     if (installationId) await loadBathrooms(installationId);
     else await initialize();
@@ -97,12 +120,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppDataContext.Provider
       value={{
         installationId,
+        accessToken,
         bathrooms,
         loading,
         error,
         errorCode,
         reloadBathrooms,
         updateBathroom,
+        saveAccessToken,
       }}
     >
       {children}

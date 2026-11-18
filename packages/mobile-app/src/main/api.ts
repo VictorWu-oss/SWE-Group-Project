@@ -136,15 +136,41 @@ export async function submitBathroomReview(
   installationId: string,
   cleanliness: CleanlinessRating,
   busyness: Busyness,
+  accessToken: string,
 ): Promise<Bathroom> {
   const body = await request(
     `/bathrooms/${encodeURIComponent(bathroomId)}/reviews`,
     {
       method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ installationId, cleanliness, busyness }),
     },
   );
   return parseBathroom(responseField(body, 'bathroom'));
+}
+
+function parseAccessToken(value: unknown): string {
+  const token = responseField(value, 'token');
+  if (typeof token !== 'string' || !token) {
+    throw apiInvalidResponseError('Bathroom service returned an invalid sign-in response.');
+  }
+  return token;
+}
+
+export async function signIn(username: string, password: string): Promise<string> {
+  const body = await request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+  return parseAccessToken(body);
+}
+
+export async function signUp(username: string, password: string): Promise<string> {
+  const body = await request('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+  return parseAccessToken(body);
 }
 
 function parseMaintenanceReport(value: unknown): MaintenanceReport {

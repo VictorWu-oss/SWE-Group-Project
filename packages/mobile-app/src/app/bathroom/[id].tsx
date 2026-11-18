@@ -9,7 +9,7 @@ import { BathroomDetailsScreen } from '../../rating/BathroomDetailsScreen';
 
 export default function BathroomRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { installationId, updateBathroom } = useAppData();
+  const { installationId, accessToken, updateBathroom, saveAccessToken } = useAppData();
   const [bathroom, setBathroom] = useState<Bathroom | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +66,8 @@ export default function BathroomRoute() {
       <BathroomDetailsScreen
         bathroom={bathroom}
         installationId={installationId}
+        accessToken={accessToken}
+        onAuthenticated={saveAccessToken}
         onClose={closeDetails}
         onBathroomUpdated={(updatedBathroom) => {
           setBathroom(updatedBathroom);

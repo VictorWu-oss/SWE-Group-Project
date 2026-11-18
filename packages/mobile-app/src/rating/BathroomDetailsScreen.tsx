@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +15,8 @@ import {
   ApiError,
   fetchBathroom,
   fetchWalkingRoute,
+  signIn,
+  signUp,
   submitBathroomReview,
   type WalkingRoute,
 } from '../main/api';
@@ -25,8 +28,10 @@ import { CampusMap, getBathroomMapLocation } from '../2d/CampusMap';
 type Props = {
   bathroom: Bathroom;
   installationId: string;
+  accessToken: string | null;
   onClose: () => void;
   onBathroomUpdated: (bathroom: Bathroom) => void;
+  onAuthenticated: (token: string) => Promise<void>;
 };
 
 const cleanlinessOptions = [1, 2, 3, 4, 5] as const;
@@ -44,14 +49,19 @@ function restroomRoomLabel(name: string) {
 export function BathroomDetailsScreen({
   bathroom,
   installationId,
+  accessToken,
   onClose,
   onBathroomUpdated,
+  onAuthenticated,
 }: Props) {
   const [cleanliness, setCleanliness] = useState<CleanlinessRating | null>(null);
   const [busyness, setBusyness] = useState<Busyness | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [authenticating, setAuthenticating] = useState(false);
   const [directionError, setDirectionError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeOrigin, setRouteOrigin] = useState<Coordinates | null>(null);
@@ -68,6 +78,7 @@ export function BathroomDetailsScreen({
         installationId,
         cleanliness,
         busyness,
+        accessToken || '',
       );
       onBathroomUpdated(updated);
       setCleanliness(null);
@@ -90,6 +101,28 @@ export function BathroomDetailsScreen({
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAuthentication(action: 'signin' | 'signup') {
+    if (authenticating) return;
+    setAuthenticating(true);
+    setError('');
+    try {
+      const token = action === 'signup'
+        ? await signUp(username, password)
+        : await signIn(username, password);
+      await onAuthenticated(token);
+      setPassword('');
+      setSuccessMessage(action === 'signup'
+        ? 'Account created. You can now submit a rating.'
+        : 'Signed in. You can now submit a rating.');
+    } catch (authenticationError) {
+      setError(authenticationError instanceof Error
+        ? authenticationError.message
+        : 'Unable to sign in right now.');
+    } finally {
+      setAuthenticating(false);
     }
   }
 
@@ -245,7 +278,49 @@ export function BathroomDetailsScreen({
                 : 'No busyness reports yet | not live occupancy'}
         </Text>
 
-        {bathroom.reviewedToday ? (
+        {!accessToken ? (
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>Sign in to submit a rating</Text>
+            <Text style={styles.sectionNote}>
+              Create an account or sign in. Your password is stored as a secure hash.
+            </Text>
+            <TextInput
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="Username"
+              style={styles.authInput}
+            />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              placeholder="Password"
+              style={styles.authInput}
+            />
+            <View style={styles.authActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={authenticating}
+                onPress={() => { void handleAuthentication('signin'); }}
+                style={[styles.authButton, authenticating && styles.submitDisabled]}
+              >
+                <Text style={styles.authButtonText}>Sign in</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={authenticating}
+                onPress={() => { void handleAuthentication('signup'); }}
+                style={[styles.authButton, styles.secondaryAuthButton, authenticating && styles.submitDisabled]}
+              >
+                <Text style={styles.secondaryAuthButtonText}>Create account</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : bathroom.reviewedToday ? (
           <View style={styles.alreadyReviewed}>
             <MaterialCommunityIcons name="check-circle-outline" size={19} color="#16845D" />
             <Text style={styles.alreadyReviewedText}>
@@ -401,6 +476,21 @@ const styles = StyleSheet.create({
   alreadyReviewedText: { flex: 1, color: '#126B4B', fontSize: 15, lineHeight: 21 },
   form: { marginTop: 24 },
   formTitle: { color: '#253143', fontSize: 16, fontWeight: '700' },
+  authInput: {
+    borderWidth: 1,
+    borderColor: '#D0D5DD',
+    borderRadius: 8,
+    color: '#17212F',
+    fontSize: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  authActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  authButton: { backgroundColor: '#225CC2', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
+  authButtonText: { color: '#fff', fontWeight: '700' },
+  secondaryAuthButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#225CC2' },
+  secondaryAuthButtonText: { color: '#225CC2', fontWeight: '700' },
   stars: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 4 },
   starButton: { padding: 3 },
   ratingHint: { color: '#667085', fontSize: 14, marginLeft: 8 },
