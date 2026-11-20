@@ -4,6 +4,7 @@ const { createDatabase, seedBathrooms } = require('../src/db/database');
 const {
   createMaintenanceReport,
   updateMaintenanceStatus,
+  validateMaintenanceDescription,
 } = require('../src/services/maintenanceService');
 
 function makeDatabase() {
@@ -30,6 +31,34 @@ test('rejects a maintenance report with an unsupported category', () => {
     && error.message === 'Category must be one of: cleanliness, supplies, fixture, accessibility, safety, other.');
 
   database.close();
+});
+
+test('rejects descriptions shorter than five Unicode characters', () => {
+  const database = makeDatabase();
+
+  assert.throws(() => createMaintenanceReport(database, 'demo-bathroom', {
+    installationId: 'installation-12345678',
+    category: 'fixture',
+    description: '🔧🔧🔧🔧',
+  }), (error) => error.statusCode === 400
+    && error.message === 'Description must contain between 5 and 500 characters.');
+
+  database.close();
+});
+
+test('accepts descriptions at the five-character minimum', () => {
+  assert.equal(validateMaintenanceDescription('  🔧a bc  '), '🔧a bc');
+});
+
+test('accepts and rejects descriptions at the 500-character limit', () => {
+  assert.equal(validateMaintenanceDescription('x'.repeat(500)).length, 500);
+  assert.throws(() => validateMaintenanceDescription('x'.repeat(501)), (error) => error.statusCode === 400
+    && error.message === 'Description must contain between 5 and 500 characters.');
+});
+
+test('rejects non-string descriptions', () => {
+  assert.throws(() => validateMaintenanceDescription(null), (error) => error.statusCode === 400
+    && error.message === 'Description must contain between 5 and 500 characters.');
 });
 
 test('persists a trimmed maintenance report with its initial open status', () => {

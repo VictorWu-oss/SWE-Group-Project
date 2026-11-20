@@ -8,15 +8,25 @@ class MaintenanceNotFoundError extends Error {
   }
 }
 
+function validateMaintenanceDescription(description) {
+  if (typeof description !== 'string') {
+    throw validationError('Description must contain between 5 and 500 characters.');
+  }
+  const trimmed = description.trim();
+  const characterCount = Array.from(trimmed).length;
+  if (characterCount < 5 || characterCount > 500) {
+    throw validationError('Description must contain between 5 and 500 characters.');
+  }
+  return trimmed;
+}
+
 function createMaintenanceReport(database, bathroomId, input, now = new Date()) {
   if (!isRecord(input)) throw validationError('A maintenance report body is required.');
   const { installationId, category, description } = input;
   if (!CATEGORIES.includes(category)) {
     throw validationError(`Category must be one of: ${CATEGORIES.join(', ')}.`);
   }
-  if (typeof description !== 'string' || description.trim().length < 5 || description.trim().length > 500) {
-    throw validationError('Description must contain between 5 and 500 characters.');
-  }
+  const validatedDescription = validateMaintenanceDescription(description);
   if (typeof installationId !== 'string' || !/^[A-Za-z0-9._:-]{8,128}$/.test(installationId)) {
     throw validationError('A valid anonymous installation ID is required.');
   }
@@ -29,7 +39,7 @@ function createMaintenanceReport(database, bathroomId, input, now = new Date()) 
     INSERT INTO maintenance_reports
       (bathroom_id, installation_id, category, description, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'open', ?, ?)
-  `).run(bathroomId, installationId, category, description.trim(), timestamp, timestamp);
+  `).run(bathroomId, installationId, category, validatedDescription, timestamp, timestamp);
   return getMaintenanceReport(database, Number(result.lastInsertRowid));
 }
 
@@ -90,4 +100,5 @@ module.exports = {
   createMaintenanceReport,
   getMaintenanceReports,
   updateMaintenanceStatus,
+  validateMaintenanceDescription,
 };
