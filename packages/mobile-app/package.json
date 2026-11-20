@@ -30,7 +30,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
-    "test:unit": "node --experimental-strip-types --test tests/discovery.test.mjs tests/apiDiagnostics.test.mjs"
+    "test:unit": "node --experimental-strip-types --test tests/discovery.test.mjs tests/apiDiagnostics.test.mjs",
+    "test:system": "node --experimental-strip-types --test tests/apiContract.test.mjs"
   },
   "private": true
 }

@@ -16,6 +16,33 @@ Unit-test tools and commands:
 - Run React units: `npm run test:unit --workspace react-frontend`.
 - Run direct backend units, including review, maintenance, and hours: `node --test packages/express-backend/tests/reviewService.test.js packages/express-backend/tests/maintenanceService.test.js packages/express-backend/tests/hours.test.js`.
 
+## System tests
+
+System tests run real application components together over HTTP. They use
+Node's built-in `node:test`, the real Express app, and isolated in-memory
+SQLite databases. The app binds to an ephemeral port on `127.0.0.1`; no live
+API server, campus data, credentials, or external network service is required.
+Install the declared workspace dependencies first with `npm install`.
+
+Commands:
+
+```sh
+npm run test:system
+npm run test:system --workspace express-backend
+npm run test:system --workspace mobile-app
+```
+
+| Test location and case | Real components exercised | Behavior and expected results |
+| --- | --- | --- |
+| [maintenanceApi.test.js](/Users/justintran/SWE-Group-Project/packages/express-backend/tests/maintenanceApi.test.js) — successful report workflow | Express maintenance `POST` and `GET` routes, `createMaintenanceReport`, `getMaintenanceReports`, and in-memory SQLite persistence. | A valid report returns `201`, trimmed description, expected category and `open` status; a subsequent list request returns the saved report with valid timestamps. |
+| [maintenanceApi.test.js](/Users/justintran/SWE-Group-Project/packages/express-backend/tests/maintenanceApi.test.js) — invalid description workflow | Express request parsing and route handling, `validateMaintenanceDescription` through `createMaintenanceReport`, `getMaintenanceReports`, and SQLite. | Too-short and over-limit descriptions each return `400` with the validation message; listing and a direct database count confirm no report was saved. |
+| [apiContract.test.mjs](/Users/justintran/SWE-Group-Project/packages/mobile-app/tests/apiContract.test.mjs) — mobile/API workflow | Real Express app, bathroom/review/directory/maintenance routes, SQLite-backed services, and mobile response parsers. | The mobile contract accepts real list/details/review/directory/maintenance responses; duplicate reviews and unknown bathrooms return expected errors. |
+
+Each test helper creates and seeds its own in-memory database, starts a local
+server for that database, then closes the server and database in `finally`.
+System tests therefore do not touch the development SQLite database and can
+be repeated safely.
+
 Other existing commands:
 
 ```sh

@@ -12,7 +12,8 @@
     "dev:mobile": "npm exec --workspace mobile-app -- expo start",
     "seed": "npm run seed --workspace express-backend",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
-    "test:unit": "npm run test:unit --workspace express-backend && npm run test:unit --workspace mobile-app && npm run test:unit --workspace react-frontend"
+    "test:unit": "npm run test:unit --workspace express-backend && npm run test:unit --workspace mobile-app && npm run test:unit --workspace react-frontend",
+    "test:system": "npm run test:system --workspace express-backend && npm run test:system --workspace mobile-app"
   },
   "repository": {
     "type": "git",
