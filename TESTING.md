@@ -1,20 +1,73 @@
 # Testing
 
-## Testing setup
+## Test levels and tools
 
-The project uses Node's built-in `node:test` runner. No separate test framework or external service is required for isolated backend unit tests.
+- **Unit tests** isolate a function/service or component behavior with controlled inputs. Node's built-in `node:test` runs backend, mobile helper, and React helper tests. Jest with `jest-expo` and React Native Testing Library renders the maintenance UI.
+- **System tests** connect multiple real application components. The Express/API tests start the real app and use HTTP requests against a fresh in-memory SQLite database. Mobile API-contract tests additionally run real mobile response parsers against real API responses.
+- **UI tests** render a user-facing React Native component and simulate accessible interactions, asserting visible results. API calls are mocked at the network boundary; the component, its validation, and UI state transitions are real.
 
-Backend unit tests run against an in-memory SQLite database; the review persistence test uses a temporary SQLite file and removes it after the test. Mobile and backend contract tests start the real Express app on an ephemeral local port.
+Unit tests should be quick and narrowly scoped. System tests verify integrated behavior across routes, services, parsers, and persistence. UI tests verify what a user can do and see through the interface.
 
-Unit-test tools and commands:
+## Installation and environment
 
-- Tool: Node.js built-in `node:test` runner.
-- Mocking: no external HTTP or database mocks are needed; backend units use in-memory SQLite, and pure mobile/React helpers receive plain objects and coordinates.
-- Run every unit-test package: `npm run test:unit`.
-- Run backend units: `npm run test:unit --workspace express-backend`.
-- Run mobile units: `npm run test:unit --workspace mobile-app`.
-- Run React units: `npm run test:unit --workspace react-frontend`.
-- Run direct backend units, including review, maintenance, and hours: `node --test packages/express-backend/tests/reviewService.test.js packages/express-backend/tests/maintenanceService.test.js packages/express-backend/tests/hours.test.js`.
+Requirements: Node.js 22.13 or newer and npm 10 or newer. Install the exact locked workspace dependencies from the repository root:
+
+```sh
+npm ci
+```
+
+No live API server, production/development database, credentials, `.env` file,
+browser, browser driver, emulator, or simulator is needed for automated tests.
+There are no Playwright/Cypress browser tests in this test setup. System tests
+bind only to `127.0.0.1` on an ephemeral port and use isolated in-memory
+databases. Test credentials, where needed, are local fixtures and not secrets.
+
+In-memory databases and test servers are closed in cleanup blocks. The review
+unit test's temporary SQLite file is removed after use. Jest/RNTL cleanup is
+automatic between tests. No manual database seed or cleanup is required.
+
+## Commands
+
+From the repository root:
+
+```sh
+npm test                 # all unit, system, UI, lint, build, and TS checks
+npm run check            # same full validation as npm test
+npm run test:unit        # all unit-test workspaces
+npm run test:system      # all configured system-test workspaces
+npm run test:ui          # React Native component UI suite
+```
+
+Run each category by workspace:
+
+```sh
+npm run test:unit --workspace express-backend
+npm run test:unit --workspace mobile-app
+npm run test:unit --workspace react-frontend
+
+npm run test:system --workspace express-backend
+npm run test:system --workspace mobile-app
+
+npm run test:ui --workspace mobile-app
+```
+
+The root `npm test` script delegates to `check`, whose `&&`-chained commands
+run each test category and then frontend lint/build and the mobile TypeScript
+check. The chain stops and returns a nonzero exit status if any category or
+quality check fails.
+
+Workspace all-test commands (also available for targeted debugging):
+
+```sh
+npm test --workspace express-backend
+npm test --workspace mobile-app
+npm test --workspace react-frontend
+```
+
+`npm test` in the backend and mobile workspaces runs their respective
+Node test files; the named `test:unit`, `test:system`, and `test:ui` scripts
+provide explicit category selection. The React workspace `npm test` runs its
+location helper unit tests.
 
 ## System tests
 
@@ -22,9 +75,10 @@ System tests run real application components together over HTTP. They use
 Node's built-in `node:test`, the real Express app, and isolated in-memory
 SQLite databases. The app binds to an ephemeral port on `127.0.0.1`; no live
 API server, campus data, credentials, or external network service is required.
-Install the declared workspace dependencies first with `npm install`.
+Install dependencies once from the repository root with `npm ci` as described
+above.
 
-Commands:
+System-test commands:
 
 ```sh
 npm run test:system
@@ -65,12 +119,6 @@ Test file: [maintenanceReports.ui.test.tsx](/Users/justintran/SWE-Group-Project/
 | Successful maintenance report | Starts with no reports; selects a category, types a description, submits, then sees the confirmation, the new report text, and its `Submitted` status. Verifies the request uses the selected bathroom/category/description and installation ID. |
 | Invalid input and API failure recovery | A short description keeps the submit button disabled and does not invoke submission. After correcting the text, a simulated service failure is shown to the user; no success message or report is displayed. |
 
-Install the project's declared test dependencies from the repository root:
-
-```sh
-npm install
-```
-
 No simulator, running API, credentials, or external network access is required
 for UI tests. Run only the component UI tests with:
 
@@ -80,18 +128,7 @@ npm run test:ui --workspace mobile-app
 ```
 
 The root `npm test` / `npm run check` validation also runs the UI suite after
-the existing backend and mobile tests.
-
-Other existing commands:
-
-```sh
-npm test --workspace express-backend
-npm test --workspace mobile-app
-npm test --workspace react-frontend
-npm test
-```
-
-The workspace backend test command currently imports authentication dependencies in the complete suite. If `bcryptjs` or another workspace dependency is missing, restore dependencies with `npm install` before retrying the complete suite.
+the unit and system test categories.
 
 ## Red–Green–Refactor: Unicode-safe maintenance descriptions
 
@@ -206,6 +243,7 @@ No UI or database schema changes were required.
 | [apiDiagnostics.test.mjs](/Users/justintran/SWE-Group-Project/packages/mobile-app/tests/apiDiagnostics.test.mjs) | API diagnostic helpers | Tests unreachable, HTTP-error, timeout, and malformed-response paths. | User-facing diagnostic errors retain status/context and classify network failures correctly. |
 | [location.test.mjs](/Users/justintran/SWE-Group-Project/packages/react-frontend/src/location.test.mjs) | `distanceBetween`, `sortBathrooms`, `formatDistance` | Tests equal coordinates, search/distance sorting, missing coordinates, and mile/feet formatting. | Matching locations return zero distance; missing locations remain usable and sort predictably. |
 
-The unit suite currently passes 34 tests across 19 backend, 12 mobile, and 3 React location tests. It is isolated from external APIs and does not require the Expo app or browser to be running.
-
-The complete testing plan for unit, system, UI, and root `npm test` setup remains the project testing plan; this document records the implemented unit setup and the TDD cycle alongside existing commands.
+The full root run covers 34 unit tests (19 backend, 12 mobile, 3 React), 29
+system tests (25 backend, 4 mobile/API contract), and 2 UI tests, followed by
+frontend lint/build and the mobile TypeScript check. Unit tests are isolated
+from external APIs and do not require the Expo app or a browser to be running.
