@@ -43,6 +43,45 @@ server for that database, then closes the server and database in `finally`.
 System tests therefore do not touch the development SQLite database and can
 be repeated safely.
 
+## UI tests
+
+### User story
+
+As a student, I want to report a maintenance issue for a bathroom and see
+whether my report was accepted, so I can notify facilities without assuming
+staff have already confirmed the issue.
+
+The tests use Jest with the Expo `jest-expo` preset and React Native Testing
+Library. They render the production `MaintenanceReportsSection` component and
+interact through button roles, visible category labels, and the accessible
+description label. Only `fetchMaintenanceReports` and
+`submitMaintenanceReport` are mocked to isolate the component from HTTP; input
+validation, disabled state, message rendering, and report history remain real.
+
+Test file: [maintenanceReports.ui.test.tsx](/Users/justintran/SWE-Group-Project/packages/mobile-app/tests/maintenanceReports.ui.test.tsx).
+
+| UI test | User-visible behavior |
+| --- | --- |
+| Successful maintenance report | Starts with no reports; selects a category, types a description, submits, then sees the confirmation, the new report text, and its `Submitted` status. Verifies the request uses the selected bathroom/category/description and installation ID. |
+| Invalid input and API failure recovery | A short description keeps the submit button disabled and does not invoke submission. After correcting the text, a simulated service failure is shown to the user; no success message or report is displayed. |
+
+Install the project's declared test dependencies from the repository root:
+
+```sh
+npm install
+```
+
+No simulator, running API, credentials, or external network access is required
+for UI tests. Run only the component UI tests with:
+
+```sh
+npm run test:ui
+npm run test:ui --workspace mobile-app
+```
+
+The root `npm test` / `npm run check` validation also runs the UI suite after
+the existing backend and mobile tests.
+
 Other existing commands:
 
 ```sh
